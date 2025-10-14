@@ -99,7 +99,7 @@
             My research focuses on understanding how machines, or artificial intelligence (AI), learn to make decisions. 
             Specifically, I work on developing novel learning algorithms to enable efficient, data-driven decision-making while emphasizing key reliability attributes. Enhancing these learning algorithms has significant practical implications, driven by the rapid adoption of AI, and is based on fascinating mathematical models. My research involves theoretical and algorithmic advancements, leveraging tools from probability theory, optimization, and geometry.
             <br>
-            Keywords include: <i>Stochastic Optimization, Distributionally Robust Optimization, Machine Learning, Reinforcement Learning, Data-driven Decision-making, Experimental Design.</i>  
+            Keywords include: <i>Data-driven Decision-making, Experimentation, Data Value, Stochastic Optimization, Distributionally Robust Optimization, Human-AI Interaction.</i>  
           </p>
 
           <!-- News Section -->
@@ -107,33 +107,21 @@
            <div id="news">
             <hr>
             <h5>Recent News</h5>
-            <ul>
-              <li>Our paper <font color="cc7000">What Data Enables Optimal Decisions? An Exact Characterization for Linear Optimization</font> was accepted in NeurIPS 2025!
-                 It is also finalist of the INFORMS Data Mining and Data Analytics Workshop Best Paper Award (Theoretical Track).
-              <li><strong>Upcoming Panel:</strong> I will be part of a panel discussion at the TTIC Workshop 
-                <i><a class="hidelink" href="https://sites.google.com/ttic.edu/incentivesdatasharing/home">Incentives for Collaborative Learning and Data Sharing</a></i>, on August 15th.
-                </p>
+            <ul class="news-list">
+              <li class="news-item">Our paper <font color="cc7000">What Data Enables Optimal Decisions? An Exact Characterization for Linear Optimization</font> was accepted in NeurIPS 2025! It is also finalist of the INFORMS Data Mining and Data Analytics Workshop Best Paper Award (Theoretical Track).</li>
+              <li class="news-item"><strong>Upcoming Panel:</strong> I will be part of a panel discussion at the TTIC Workshop <i><a class="hidelink" href="https://sites.google.com/ttic.edu/incentivesdatasharing/home">Incentives for Collaborative Learning and Data Sharing</a></i>, on August 15th.</li>
+              <li class="news-item older-news hidden"><strong>Upcoming Talks:</strong> I will be presenting our latest paper on understanding data value at the <strong>APS conference</strong> (Thursday 10:30am, July 3rd, session "Statistical Learning for Decision-Making") and the <strong>RMP conference</strong> (Tuesday 9:30am, July 15th, session "Data Collection, Sharing, and Informativeness", Geffen 440).</li>
+              <li class="news-item older-news hidden"><strong>New paper:</strong> <font color="cc7000">What Data Enables Optimal Decisions? An Exact Characterization for Linear Optimization</font>.
+                <p style="color: hsl(0, 0%, 30%);">I am excited about this new direction! We seek to understand the value of data in decision-making under uncertainty. In this paper, given a quantified uncertainty and decision task, we prove an exact characterization of what data enables optimal decisions.</p>
               </li>
-              <li><strong>Upcoming Talks:</strong> I will be presenting our latest paper on understanding data value at 
-                the <strong>APS conference</strong> (Thursday 10:30am, July 3rd, session "Statistical Learning for Decision-Making") and 
-                the <strong>RMP conference</strong> (Tuesday 9:30am, July 15th, session "Data Collection, Sharing, and Informativeness", Geffen 440).
-                </p>
+              <li class="news-item older-news hidden"><strong>New paper:</strong> <font color="cc7000">From Distributional Robustness to Robust Statistics: A Confidence Sets Perspective</font>.
+                <p style="color: hsl(0, 0%, 30%);">We establish a natural connection between distributionally robust optimization and classical robust statistics, the two major frameworks for robustness that often seem to follow fundamentally different paradigms.</p>
               </li>
-              <!-- <li><strong>New paper:</strong> <font color="cc7000">What Data Enables Optimal Decisions?
-                An Exact Characterization for Linear Optimization</font>.
-                <br><p style="color: hsl(0, 0%, 30%);">I am excited about this new direction! 
-                  We seek to understand the value of data in decision-making under uncertainty. In this paper, given a quatified uncertainty and decision task, we prove a exact characterization of what data enables optimal decisions.
-                </p>
+              <li class="news-item older-news hidden"><strong>Published paper:</strong> <font color="cc7000">Learning the Minimal Representation of a Continuous State-Space Markov Decision Process from Transition Data</font> is published in Management Science.
+                <p style="color: hsl(0, 0%, 30%);">We study here how to learn the simplest MDP model that explains sequential data observed from a dynamic system. This is a very intriguing statistical learning problem theoretically, with important practical implications for interpretability in ML.</p>
               </li>
-            <li><strong>New paper:</strong> <font color="cc7000">From Distributional Robustness to Robust Statistics: A Confidence Sets Perspective</font>.
-              <br><p style="color: hsl(0, 0%, 30%);">We establish a natural connection between distributionally robust optimization and classical robust statistics, 
-              the two major frameworks for robustness that often seem to follow fundamentally different paradigms.</p>
-            </li> -->
-            <!-- <li><strong>Published paper:</strong> <font color="cc7000">Learning the Minimal Representation of a Continuous State-Space Markov Decision Process from Transition Data</font> is published in Management Science.
-              <br><p style="color: hsl(0, 0%, 30%);">We study here how to learn the simplest MDP model that explains sequential data observed from a dynamic system. 
-              This is a very intriguing statistical learning problem theoretically, with important practical implications for interpretability in ML.</p>
-            </li> -->
-          </ul>
+            </ul>
+            <button id="toggle-news" class="button-link toggle-news-button" data-expanded="false">Show older news</button>
             <!-- <h5>Upcoming Talks</h5>
             Here are the sessions I will be taking part on at the <font color="cc7000"><strong>INFORMS 2024 Annual Meeting</strong></font> in Seattle, you're welcome to join!
             <br><font color="#00008B"><strong>On Robustness:</strong></font>
@@ -520,6 +508,28 @@
   </div>
 
   
+  <script>
+    (function () {
+      var toggleButton = document.getElementById('toggle-news');
+      if (!toggleButton) {
+        return;
+      }
+      var olderNewsItems = document.querySelectorAll('#news .older-news');
+      if (!olderNewsItems.length) {
+        toggleButton.style.display = 'none';
+        return;
+      }
+      toggleButton.addEventListener('click', function () {
+        var isExpanded = toggleButton.getAttribute('data-expanded') === 'true';
+        olderNewsItems.forEach(function (item) {
+          item.classList.toggle('hidden', isExpanded);
+        });
+        toggleButton.setAttribute('data-expanded', isExpanded ? 'false' : 'true');
+        toggleButton.textContent = isExpanded ? 'Show older news' : 'Hide older news';
+      });
+    })();
+  </script>
+
   <!-- End Document -->
 </body>
 

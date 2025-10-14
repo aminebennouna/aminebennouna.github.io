@@ -98,6 +98,26 @@ html {
   margin: 0;
 }
 
+.hidden {
+  display: none;
+}
+
+.toggle-news-button {
+  height: auto;
+  padding: 6px 12px;
+  font-size: 12px;
+  margin-top: 10px;
+  line-height: 1.2;
+}
+
+.news-list {
+  margin-bottom: 0.75rem;
+}
+
+.news-item p {
+  margin: 0.4rem 0 0;
+}
+
 .small-indent {
   display: inline-block;
   width: 0px; /* Adjust the width for the desired indent */
