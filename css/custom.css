@@ -123,6 +123,18 @@ html {
   width: 0px; /* Adjust the width for the desired indent */
 }
 
+.photo-credit {
+  color: #777;
+  font-size: 12px;
+  margin: 0 0 6px 0;
+  text-align: right;
+}
+
+.photo-credit a {
+  color: inherit;
+  text-decoration: underline;
+}
+
 @media (max-width: 1200px) {
   .container {
     max-width: 90%;
