@@ -35,11 +35,11 @@
 
         // Station definitions
         const stations = {
-          A: { time: 2, resource: 'Kyle', x: 150, y: 180 },
-          B: { time: 2, resource: 'Kenny', x: 380, y: 290 },
-          C: { time: 2, resource: 'Eric', x: 620, y: 290 },
-          D: { time: 3, resource: 'Stan', x: 500, y: 80 },
-          E: { time: 2, resource: 'Timmy', x: 900, y: 180 }
+          A: { time: 2, resource: 'Finn', x: 150, y: 180 },
+          B: { time: 2, resource: 'Rick', x: 380, y: 290 },
+          C: { time: 2, resource: 'Marceline', x: 620, y: 290 },
+          D: { time: 3, resource: 'Morty', x: 500, y: 80 },
+          E: { time: 2, resource: 'Jake', x: 900, y: 180 }
         };
 
         const createEmptyStations = () => ({
@@ -256,7 +256,7 @@
               {/* Header */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <h1 className="text-3xl font-bold text-slate-800 mb-2">Process Flow Capacity Simulation</h1>
-                <p className="text-slate-600">Every 2 hours a new job enters, splits after Kyle, and must rejoin before Timmy can start</p>
+                <p className="text-slate-600">Every 2 hours a new job enters, splits after Finn, and must rejoin before Jake can start</p>
               </div>
 
               {/* Stats */}
@@ -314,7 +314,7 @@
                   {/* D to E */}
                   <line x1="580" y1="110" x2="820" y2="150" stroke="#64748b" strokeWidth="3" markerEnd="url(#arrowhead)" />
 
-                  {/* Join-wait jobs (Stan done, waiting on Eric) */}
+                  {/* Join-wait jobs (Morty done, waiting on Marceline) */}
                   {joinWaitUpperTokens.map(token => {
                     const x = 700 - token.index * 26;
                     const y = 135;
@@ -328,7 +328,7 @@
                     );
                   })}
 
-                  {/* Join-wait jobs (Eric done, waiting on Stan) */}
+                  {/* Join-wait jobs (Marceline done, waiting on Morty) */}
                   {joinWaitTokens.map(token => {
                     const x = 760 - token.index * 26;
                     const y = 235;
@@ -363,28 +363,28 @@
                   {/* Station A */}
                   <rect x="70" y="150" width="160" height="80" fill="#e2e8f0" stroke="#475569" strokeWidth="2" rx="4" />
                   <text x="150" y="185" textAnchor="middle" className="text-2xl font-bold fill-slate-700">A</text>
-                  <text x="150" y="210" textAnchor="middle" className="text-sm fill-slate-600">2hrs - Kyle</text>
+                  <text x="150" y="210" textAnchor="middle" className="text-sm fill-slate-600">2hrs - Finn</text>
 
                   {/* Station B */}
                   <rect x="300" y="260" width="160" height="80" fill="#e2e8f0" stroke="#475569" strokeWidth="2" rx="4" />
                   <text x="380" y="295" textAnchor="middle" className="text-2xl font-bold fill-slate-700">B</text>
-                  <text x="380" y="320" textAnchor="middle" className="text-sm fill-slate-600">2hrs - Kenny</text>
+                  <text x="380" y="320" textAnchor="middle" className="text-sm fill-slate-600">2hrs - Rick</text>
 
                   {/* Station C */}
                   <rect x="540" y="260" width="160" height="80" fill="#e2e8f0" stroke="#475569" strokeWidth="2" rx="4" />
                   <text x="620" y="295" textAnchor="middle" className="text-2xl font-bold fill-slate-700">C</text>
-                  <text x="620" y="320" textAnchor="middle" className="text-sm fill-slate-600">2hrs - Eric</text>
+                  <text x="620" y="320" textAnchor="middle" className="text-sm fill-slate-600">2hrs - Marceline</text>
 
                   {/* Station D (Bottleneck) */}
                   <rect x="430" y="50" width="160" height="80" fill="#fecaca" stroke="#dc2626" strokeWidth="3" rx="4" />
                   <text x="510" y="85" textAnchor="middle" className="text-2xl font-bold fill-red-700">D</text>
-                  <text x="510" y="110" textAnchor="middle" className="text-sm fill-red-700 font-semibold">3hrs - Stan</text>
+                  <text x="510" y="110" textAnchor="middle" className="text-sm fill-red-700 font-semibold">3hrs - Morty</text>
                   <text x="510" y="125" textAnchor="middle" className="text-xs fill-red-600 font-bold">BOTTLENECK</text>
 
                   {/* Station E */}
                   <rect x="820" y="150" width="160" height="80" fill="#e2e8f0" stroke="#475569" strokeWidth="2" rx="4" />
                   <text x="900" y="185" textAnchor="middle" className="text-2xl font-bold fill-slate-700">E</text>
-                  <text x="900" y="210" textAnchor="middle" className="text-sm fill-slate-600">2hrs - Timmy</text>
+                  <text x="900" y="210" textAnchor="middle" className="text-sm fill-slate-600">2hrs - Jake</text>
 
                   {/* Jobs */}
                   {tokens.map(token => {
@@ -456,15 +456,15 @@
                 <ul className="space-y-2 text-slate-700">
                   <li className="flex items-start gap-2">
                     <span className="text-red-600 font-bold">•</span>
-                    <span><strong>Station D (Stan)</strong> takes 3 hours while all others take 2 hours, making it the <strong>bottleneck</strong></span>
+                    <span><strong>Station D (Morty)</strong> takes 3 hours while all others take 2 hours, making it the <strong>bottleneck</strong></span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-amber-600 font-bold">•</span>
-                    <span>Each job <strong>splits into two branches</strong> after Kyle and must <strong>rejoin</strong> before Timmy can start</span>
+                    <span>Each job <strong>splits into two branches</strong> after Finn and must <strong>rejoin</strong> before Jake can start</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-blue-600 font-bold">•</span>
-                    <span>System capacity is limited by the <strong>slowest branch</strong> (Stan's 3-hour station)</span>
+                    <span>System capacity is limited by the <strong>slowest branch</strong> (Morty's 3-hour station)</span>
                   </li>
                 </ul>
               </div>
