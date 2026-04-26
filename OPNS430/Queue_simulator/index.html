@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Queue Simulator — Operations Management</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: #f4f6fa;
+    color: #1a2230;
+  }
+  h1 {
+    font-size: 22px;
+    margin: 0 0 18px 0;
+    color: #4E2A84; /* Kellogg purple */
+  }
+  .container { max-width: 1280px; margin: 0 auto; }
+
+  .card {
+    background: white;
+    border-radius: 10px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    margin-bottom: 16px;
+  }
+
+  .controls-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+  }
+  .control label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4a5568;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .control .value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a2230;
+    margin-bottom: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .control input[type=range] { width: 100%; accent-color: #4E2A84; }
+  .hint { font-size: 11px; color: #7a8496; margin-top: 2px; }
+
+  .buttons { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+  button {
+    background: #4E2A84;
+    color: white;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  button:hover { background: #6a3db0; }
+  button.secondary { background: #e2e6ee; color: #1a2230; }
+  button.secondary:hover { background: #d1d6e0; }
+  .speed-control { display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 13px; }
+  .speed-control input[type=number] {
+    width: 90px;
+    padding: 6px 8px;
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid #d1d6e0;
+    border-radius: 6px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: #1a2230;
+  }
+  .speed-control input[type=number]:focus {
+    outline: none;
+    border-color: #4E2A84;
+    box-shadow: 0 0 0 3px rgba(78, 42, 132, 0.15);
+  }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  canvas { display: block; width: 100%; background: #fafbfd; border-radius: 6px; }
+  .chart-wrap { position: relative; }
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .chart-toggles {
+    display: flex;
+    gap: 14px;
+    font-size: 12px;
+    color: #4a5568;
+    font-weight: 500;
+  }
+  .chart-toggles label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
+  }
+  .chart-toggles input[type=checkbox] { accent-color: #4E2A84; margin: 0; }
+  .swatch {
+    display: inline-block;
+    width: 18px;
+    height: 3px;
+    border-radius: 1px;
+  }
+  .swatch.kingman { background: #f6ad55; }
+  .swatch.empirical { background: #2f855a; }
+  .panel-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #4a5568;
+    margin-bottom: 8px;
+  }
+
+  .stats-featured {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .stats-secondary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  .stat-box {
+    background: #f7f8fc;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border-left: 3px solid #4E2A84;
+  }
+  .stat-box.featured {
+    background: linear-gradient(135deg, #f6f0ff 0%, #ede3f9 100%);
+    border-left: 5px solid #4E2A84;
+    padding: 14px 18px;
+  }
+  .stat-box.featured .stat-label {
+    color: #4E2A84;
+    font-size: 12px;
+  }
+  .stat-box.featured .stat-value {
+    font-size: 34px;
+    color: #4E2A84;
+    margin-top: 4px;
+  }
+  .stat-box.featured .stat-sub {
+    font-size: 12px;
+    color: #6a4c92;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: #5a6478;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+  .stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a2230;
+    font-variant-numeric: tabular-nums;
+    margin-top: 2px;
+  }
+  .stat-sub { font-size: 11px; color: #7a8496; margin-top: 1px; }
+
+  .formula-box {
+    background: #f7f3fc;
+    border: 1px solid #e0d5ef;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #4a3a66;
+    margin-top: 12px;
+    font-family: "Georgia", serif;
+  }
+  .formula-box strong { color: #4E2A84; font-family: inherit; }
+
+  .warning { color: #c53030; font-weight: 600; }
+  .ok { color: #2f855a; font-weight: 600; }
+
+  .panic-msg {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    transition: background 0.35s, color 0.35s;
+    background: #edf7ee;
+    color: #2f855a;
+    border: 1px solid rgba(0,0,0,0.04);
+  }
+  .panic-msg.shaking { animation: shake 0.4s infinite; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+  }
+
+  @media (max-width: 900px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .controls-grid { grid-template-columns: repeat(2, 1fr); }
+    .stats-secondary { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Queue Simulator</h1>
+
+  <!-- Controls -->
+  <div class="card">
+    <div class="controls-grid">
+      <div class="control">
+        <label>Arrival Rate (λ)</label>
+        <div class="value"><span id="lambdaVal">2.400</span> <span style="font-size:13px;color:#7a8496;">per min</span></div>
+        <input type="range" id="lambda" min="1" max="10" step="0.005" value="2.4">
+        <div class="hint">Customers arriving per minute</div>
+      </div>
+      <div class="control">
+        <label>Service Rate (μ) — Capacity</label>
+        <div class="value"><span id="muVal">3.000</span> <span style="font-size:13px;color:#7a8496;">per min</span></div>
+        <input type="range" id="mu" min="1" max="10" step="0.005" value="3.0">
+        <div class="hint">Customers the server can process per minute</div>
+      </div>
+      <div class="control">
+        <label>Arrival Variability (CVₐ)</label>
+        <div class="value" id="cvaVal">1.00</div>
+        <input type="range" id="cva" min="0" max="2.0" step="0.005" value="1.0">
+        <div class="hint">0 = deterministic, 1 = exponential (Poisson)</div>
+      </div>
+      <div class="control">
+        <label>Service Variability (CVₛ)</label>
+        <div class="value" id="cvsVal">1.00</div>
+        <input type="range" id="cvs" min="0" max="2.0" step="0.005" value="1.0">
+        <div class="hint">0 = constant service, 1 = exponential</div>
+      </div>
+    </div>
+    <div class="buttons">
+      <button id="playBtn">▶ Start</button>
+      <button id="pauseBtn" class="secondary">❚❚ Pause</button>
+      <button id="resetBtn" class="secondary">↺ Reset</button>
+      <div class="speed-control">
+        <span>Speed:</span>
+        <input type="number" id="speed" min="0.1" max="10000" step="0.5" value="4">
+        <span>×</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Animation + Chart -->
+  <div class="main-grid">
+    <div class="card">
+      <div class="panel-title">Simulation — Arrivals &amp; Service</div>
+      <canvas id="simCanvas" width="600" height="380"></canvas>
+      <div id="panicMsg" class="panic-msg">All clear.</div>
+    </div>
+    <div class="card chart-wrap">
+      <div class="chart-header">
+        <div class="panel-title" style="margin-bottom:0;">Queue Length Over Time</div>
+        <div class="chart-toggles">
+          <label><input type="checkbox" id="showKingman"> <span class="swatch kingman"></span> Kingman prediction</label>
+          <label><input type="checkbox" id="showEmpirical"> <span class="swatch empirical"></span> Empirical avg</label>
+        </div>
+      </div>
+      <canvas id="chartCanvas" width="600" height="380"></canvas>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="card">
+    <div class="panel-title">Live Statistics</div>
+    <div class="stats-featured">
+      <div class="stat-box featured">
+        <div class="stat-label">Avg Queue (Lq)</div>
+        <div class="stat-value" id="statLq">0.00</div>
+        <div class="stat-sub">time-average customers waiting</div>
+      </div>
+      <div class="stat-box featured">
+        <div class="stat-label">Avg Wait (Wq)</div>
+        <div class="stat-value" id="statWq">0.00</div>
+        <div class="stat-sub">minutes per customer</div>
+      </div>
+    </div>
+    <div class="stats-secondary">
+      <div class="stat-box">
+        <div class="stat-label">Sim Time</div>
+        <div class="stat-value" id="statTime">0.0</div>
+        <div class="stat-sub">minutes</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">In Queue</div>
+        <div class="stat-value" id="statQ">0</div>
+        <div class="stat-sub">waiting now</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Utilization (ρ)</div>
+        <div class="stat-value" id="statRho">0%</div>
+        <div class="stat-sub">server busy</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Throughput</div>
+        <div class="stat-value" id="statThru">0.00</div>
+        <div class="stat-sub">served / min</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Theory reference (kept at the bottom so it doesn't steer students before they form intuition) -->
+  <div class="card theory-card">
+    <div class="panel-title">Theoretical Reference</div>
+    <div class="formula-box" id="formulaBox">
+      <strong>ρ = λ/μ = 0.80</strong> &nbsp;|&nbsp;
+      Kingman approx (G/G/1): <strong>L<sub>q</sub> ≈ (ρ²/(1−ρ)) · ((CVₐ² + CVₛ²)/2) = 0.80</strong>
+      &nbsp;|&nbsp; Expected wait W<sub>q</sub> ≈ <strong>1.00 min</strong>
+    </div>
+  </div>
+</div>
+
+<script>
+// ================ RNG helpers ================
+function randNormal() {
+  // Box-Muller
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+
+function randGamma(shape, scale) {
+  // Marsaglia & Tsang method
+  if (shape < 1) {
+    const r = Math.pow(Math.random(), 1 / shape);
+    return r * randGamma(shape + 1, scale);
+  }
+  const d = shape - 1 / 3;
+  const c = 1 / Math.sqrt(9 * d);
+  while (true) {
+    let x, v;
+    do {
+      x = randNormal();
+      v = 1 + c * x;
+    } while (v <= 0);
+    v = v * v * v;
+    const u = Math.random();
+    if (u < 1 - 0.0331 * x * x * x * x) return d * v * scale;
+    if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v * scale;
+  }
+}
+
+// Sample interarrival/service time with given mean and CV using a gamma distribution.
+// CV = 0 => deterministic; CV = 1 => exponential; generally shape = 1/CV^2.
+function sampleTime(mean, cv) {
+  if (cv <= 0.001) return mean;
+  const shape = 1 / (cv * cv);
+  const scale = mean / shape;
+  return randGamma(shape, scale);
+}
+
+// ================ State ================
+let state;
+function resetState() {
+  state = {
+    t: 0,              // sim time (minutes)
+    nextArrival: 0,    // time of next arrival
+    queue: [],         // customers waiting (each: {arrivedAt})
+    inService: null,   // customer being served {arrivedAt, serviceEndsAt, serviceStartedAt, serviceDuration}
+    served: 0,         // count served
+    totalWait: 0,      // sum of waits
+    // time-average accumulators
+    lastEventT: 0,
+    qAreaAcc: 0,       // integral of queue length over time (for Lq)
+    busyTimeAcc: 0,    // time server was busy (for utilization)
+    history: [],       // {t, q} for chart
+    arrivalBlips: [],  // recent arrival visualization {t, y}
+    arrivalsCount: 0,
+    running: false,
+  };
+  state.nextArrival = sampleTime(1 / params.lambda, params.cva);
+  redraw();
+  updateStats();
+}
+
+// ================ Params ================
+const params = { lambda: 2.4, mu: 3.0, cva: 1.0, cvs: 1.0, speed: 4 };
+
+function bindControl(id, valId, key, fmt) {
+  const el = document.getElementById(id);
+  const valEl = document.getElementById(valId);
+  el.addEventListener('input', () => {
+    params[key] = parseFloat(el.value);
+    valEl.textContent = fmt(params[key]);
+    updateFormula();
+  });
+}
+bindControl('lambda', 'lambdaVal', 'lambda', v => v.toFixed(3));
+bindControl('mu', 'muVal', 'mu', v => v.toFixed(3));
+bindControl('cva', 'cvaVal', 'cva', v => v.toFixed(3));
+bindControl('cvs', 'cvsVal', 'cvs', v => v.toFixed(3));
+
+document.getElementById('speed').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  if (!isNaN(v) && v > 0) params.speed = v;
+});
+
+function updateFormula() {
+  const rho = params.lambda / params.mu;
+  const box = document.getElementById('formulaBox');
+  if (rho >= 1) {
+    box.innerHTML = `<strong>ρ = λ/μ = ${rho.toFixed(2)}</strong> &nbsp;|&nbsp;
+      <span class="warning">Unstable: arrivals ≥ capacity. Queue will grow without bound.</span>`;
+    return;
+  }
+  const vFactor = (params.cva ** 2 + params.cvs ** 2) / 2;
+  const Lq = (rho * rho / (1 - rho)) * vFactor;
+  const Wq = Lq / params.lambda;
+  box.innerHTML = `<strong>ρ = λ/μ = ${rho.toFixed(2)}</strong> &nbsp;|&nbsp;
+    Kingman approx (G/G/1): <strong>L<sub>q</sub> ≈ (ρ²/(1−ρ)) · ((CVₐ² + CVₛ²)/2) = ${Lq.toFixed(2)}</strong>
+    &nbsp;|&nbsp; Expected wait W<sub>q</sub> ≈ <strong>${Wq.toFixed(2)} min</strong>`;
+}
+updateFormula();
+
+// ================ Simulation step ================
+// Event-driven: advance to next event (arrival or service completion)
+function stepSimTo(targetT) {
+  while (state.t < targetT) {
+    const nextArr = state.nextArrival;
+    const nextDep = state.inService ? state.inService.serviceEndsAt : Infinity;
+    const nextEvent = Math.min(nextArr, nextDep, targetT);
+
+    // accumulate time-averages from last event
+    const dt = nextEvent - state.lastEventT;
+    if (dt > 0) {
+      state.qAreaAcc += state.queue.length * dt;
+      if (state.inService) state.busyTimeAcc += dt;
+    }
+    state.lastEventT = nextEvent;
+    state.t = nextEvent;
+
+    if (nextEvent === targetT && nextArr > targetT && nextDep > targetT) break;
+
+    if (nextArr <= nextDep) {
+      // arrival
+      const cust = { arrivedAt: state.t };
+      state.arrivalsCount++;
+      state.arrivalBlips.push({ t: state.t, id: state.arrivalsCount });
+      if (state.arrivalBlips.length > 40) state.arrivalBlips.shift();
+
+      if (!state.inService) {
+        // go straight to service
+        const svc = sampleTime(1 / params.mu, params.cvs);
+        state.inService = {
+          arrivedAt: cust.arrivedAt,
+          serviceStartedAt: state.t,
+          serviceDuration: svc,
+          serviceEndsAt: state.t + svc,
+        };
+      } else {
+        state.queue.push(cust);
+      }
+      state.nextArrival = state.t + sampleTime(1 / params.lambda, params.cva);
+    } else {
+      // departure
+      const finished = state.inService;
+      state.served++;
+      state.totalWait += (finished.serviceStartedAt - finished.arrivedAt);
+
+      if (state.queue.length > 0) {
+        const nextCust = state.queue.shift();
+        const svc = sampleTime(1 / params.mu, params.cvs);
+        state.inService = {
+          arrivedAt: nextCust.arrivedAt,
+          serviceStartedAt: state.t,
+          serviceDuration: svc,
+          serviceEndsAt: state.t + svc,
+        };
+      } else {
+        state.inService = null;
+      }
+    }
+
+    // record queue length history
+    const qLen = state.queue.length + (state.inService ? 1 : 0);
+    state.history.push({ t: state.t, q: qLen });
+    // cap history length to avoid memory bloat
+    if (state.history.length > 4000) {
+      state.history.splice(0, 1000);
+    }
+  }
+}
+
+// ================ Rendering ================
+const simCanvas = document.getElementById('simCanvas');
+const simCtx = simCanvas.getContext('2d');
+const chartCanvas = document.getElementById('chartCanvas');
+const chartCtx = chartCanvas.getContext('2d');
+
+function resizeCanvas(canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { w: rect.width, h: rect.height };
+}
+
+function drawSim() {
+  const { w, h } = resizeCanvas(simCanvas);
+  simCtx.clearRect(0, 0, w, h);
+
+  // Layout: arrivals stream -> queue -> server -> departures at the bottom;
+  // queue stacks UPWARD in columns, so the tower grows visibly.
+  const baseY = h - 55;
+  const arrivalsX = 30;
+  const queueStartX = 70;
+  const queueEndX = w * 0.58;
+  const serverX = w * 0.70;
+  const departX = w - 30;
+
+  // Flow line
+  simCtx.strokeStyle = '#d8dce6';
+  simCtx.lineWidth = 1;
+  simCtx.setLineDash([4, 4]);
+  simCtx.beginPath();
+  simCtx.moveTo(arrivalsX, baseY);
+  simCtx.lineTo(departX, baseY);
+  simCtx.stroke();
+  simCtx.setLineDash([]);
+
+  // Labels under the line
+  simCtx.fillStyle = '#5a6478';
+  simCtx.font = '11px -apple-system, sans-serif';
+  simCtx.textAlign = 'center';
+  simCtx.fillText('ARRIVALS', arrivalsX, baseY + 22);
+  simCtx.fillText('QUEUE', (queueStartX + queueEndX) / 2, baseY + 22);
+  simCtx.fillText('SERVER', serverX, baseY + 22);
+  simCtx.fillText('DEPARTED', departX, baseY + 22);
+
+  // Arrival blips
+  const blipLifeMin = 0.8;
+  simCtx.fillStyle = '#f6ad55';
+  for (const b of state.arrivalBlips) {
+    const age = state.t - b.t;
+    if (age < 0 || age > blipLifeMin) continue;
+    const prog = age / blipLifeMin;
+    const x = arrivalsX + (queueStartX - arrivalsX) * prog;
+    simCtx.globalAlpha = 1 - prog;
+    simCtx.beginPath();
+    simCtx.arc(x, baseY, 7, 0, Math.PI * 2);
+    simCtx.fill();
+  }
+  simCtx.globalAlpha = 1;
+
+  // Queue customers — columns grow UP; new columns added LEFT as the queue swells.
+  // Visible capacity adapts to queue size (shrink dots for huge queues so we show more).
+  const qLen = state.queue.length;
+  const baseDotR = 9;
+  const baseSpacing = 20;
+  // Shrink factor: when queue > 500 we compress dots down to show up to ~2000 visible
+  let spacing = baseSpacing;
+  let dotR = baseDotR;
+  if (qLen > 300) { spacing = 12; dotR = 5; }
+  if (qLen > 1000) { spacing = 8; dotR = 3; }
+  if (qLen > 3000) { spacing = 5; dotR = 2; }
+
+  const queueWidth = queueEndX - queueStartX;
+  const queueHeightRoom = baseY - 20; // leave room at top
+  const maxCols = Math.max(1, Math.floor(queueWidth / spacing));
+  const maxRows = Math.max(1, Math.floor(queueHeightRoom / spacing));
+  const maxVisible = maxCols * maxRows;
+  const visibleQ = Math.min(qLen, maxVisible);
+
+  for (let i = 0; i < visibleQ; i++) {
+    // Fill horizontally first (row), then stack new rows upward.
+    const row = Math.floor(i / maxCols);
+    const col = i % maxCols;
+    const x = queueEndX - (col + 0.5) * spacing;
+    const y = baseY - (row + 0.5) * spacing;
+    const cust = state.queue[i];
+    const waitTime = state.t - cust.arrivedAt;
+    const intensity = Math.min(1, waitTime / 5);
+    const r = Math.round(78 + (220 - 78) * intensity);
+    const g = Math.round(42 + (80 - 42) * intensity);
+    const b = Math.round(132 - (132 - 60) * intensity);
+    simCtx.fillStyle = `rgb(${r},${g},${b})`;
+    simCtx.beginPath();
+    simCtx.arc(x, y, dotR, 0, Math.PI * 2);
+    simCtx.fill();
+  }
+  if (qLen > maxVisible) {
+    simCtx.fillStyle = '#c53030';
+    simCtx.font = 'bold 13px -apple-system, sans-serif';
+    simCtx.textAlign = 'left';
+    simCtx.fillText(`+${(qLen - maxVisible).toLocaleString()} off-screen`, 18, 70);
+  }
+
+  // Server box
+  simCtx.strokeStyle = '#4E2A84';
+  simCtx.lineWidth = 2;
+  simCtx.fillStyle = state.inService ? '#ede3f9' : '#f7f8fc';
+  simCtx.fillRect(serverX - 22, baseY - 22, 44, 44);
+  simCtx.strokeRect(serverX - 22, baseY - 22, 44, 44);
+
+  if (state.inService) {
+    simCtx.fillStyle = '#4E2A84';
+    simCtx.beginPath();
+    simCtx.arc(serverX, baseY, 10, 0, Math.PI * 2);
+    simCtx.fill();
+
+    // Progress bar placed ABOVE the server so it never collides with queue labels
+    const svc = state.inService;
+    const prog = Math.min(1, (state.t - svc.serviceStartedAt) / svc.serviceDuration);
+    simCtx.fillStyle = '#e2e6ee';
+    simCtx.fillRect(serverX - 22, baseY - 32, 44, 4);
+    simCtx.fillStyle = '#4E2A84';
+    simCtx.fillRect(serverX - 22, baseY - 32, 44 * prog, 4);
+  }
+
+  // Served counter
+  simCtx.fillStyle = '#2f855a';
+  simCtx.font = 'bold 14px -apple-system, sans-serif';
+  simCtx.textAlign = 'center';
+  simCtx.fillText(`\u2713 ${state.served.toLocaleString()}`, departX, baseY + 5);
+
+  // Header info
+  simCtx.fillStyle = '#1a2230';
+  simCtx.font = 'bold 16px -apple-system, sans-serif';
+  simCtx.textAlign = 'left';
+  simCtx.fillText(`Queue: ${qLen.toLocaleString()}`, 18, 25);
+  simCtx.fillStyle = '#5a6478';
+  simCtx.font = '12px -apple-system, sans-serif';
+  simCtx.fillText(`t = ${state.t.toFixed(1)} min`, 18, 45);
+}
+
+function drawChart() {
+  const { w, h } = resizeCanvas(chartCanvas);
+  chartCtx.clearRect(0, 0, w, h);
+
+  const pad = { l: 40, r: 15, t: 15, b: 30 };
+  const chartW = w - pad.l - pad.r;
+  const chartH = h - pad.t - pad.b;
+
+  // Determine window — show recent history
+  const windowLen = 60; // minutes shown
+  const tMax = Math.max(state.t, windowLen);
+  const tMin = Math.max(0, tMax - windowLen);
+
+  // Determine y max from history in window
+  let yMax = 5;
+  for (const p of state.history) {
+    if (p.t >= tMin && p.q > yMax) yMax = p.q;
+  }
+  yMax = Math.ceil(yMax * 1.15);
+
+  // Axes
+  chartCtx.strokeStyle = '#d8dce6';
+  chartCtx.lineWidth = 1;
+  chartCtx.beginPath();
+  chartCtx.moveTo(pad.l, pad.t);
+  chartCtx.lineTo(pad.l, pad.t + chartH);
+  chartCtx.lineTo(pad.l + chartW, pad.t + chartH);
+  chartCtx.stroke();
+
+  // Y gridlines
+  chartCtx.fillStyle = '#7a8496';
+  chartCtx.font = '10px -apple-system, sans-serif';
+  chartCtx.textAlign = 'right';
+  const yTicks = 5;
+  for (let i = 0; i <= yTicks; i++) {
+    const yVal = (yMax * i) / yTicks;
+    const y = pad.t + chartH - (chartH * i) / yTicks;
+    chartCtx.strokeStyle = '#eef0f5';
+    chartCtx.beginPath();
+    chartCtx.moveTo(pad.l, y);
+    chartCtx.lineTo(pad.l + chartW, y);
+    chartCtx.stroke();
+    chartCtx.fillText(yVal.toFixed(0), pad.l - 6, y + 3);
+  }
+
+  // X labels
+  chartCtx.textAlign = 'center';
+  const xTicks = 6;
+  for (let i = 0; i <= xTicks; i++) {
+    const tVal = tMin + ((tMax - tMin) * i) / xTicks;
+    const x = pad.l + (chartW * i) / xTicks;
+    chartCtx.fillText(tVal.toFixed(0), x, pad.t + chartH + 15);
+  }
+
+  // Axis titles
+  chartCtx.save();
+  chartCtx.translate(12, pad.t + chartH / 2);
+  chartCtx.rotate(-Math.PI / 2);
+  chartCtx.textAlign = 'center';
+  chartCtx.fillStyle = '#4a5568';
+  chartCtx.font = 'bold 11px -apple-system, sans-serif';
+  chartCtx.fillText('Queue length (#)', 0, 0);
+  chartCtx.restore();
+  chartCtx.fillStyle = '#4a5568';
+  chartCtx.font = 'bold 11px -apple-system, sans-serif';
+  chartCtx.textAlign = 'center';
+  chartCtx.fillText('Time (minutes)', pad.l + chartW / 2, h - 4);
+
+  // Optional reference lines: Kingman (theoretical) and Empirical (sim average).
+  const showKingman = document.getElementById('showKingman').checked;
+  const showEmpirical = document.getElementById('showEmpirical').checked;
+
+  // Kingman steady-state expected L (include server, so L = Lq + ρ)
+  const rho = params.lambda / params.mu;
+  if (showKingman && rho < 1) {
+    const vFactor = (params.cva ** 2 + params.cvs ** 2) / 2;
+    const Lq = (rho * rho / (1 - rho)) * vFactor;
+    const L = Lq + rho;
+    const y = pad.t + chartH - (chartH * L) / yMax;
+    if (y > pad.t && y < pad.t + chartH) {
+      chartCtx.strokeStyle = '#f6ad55';
+      chartCtx.setLineDash([5, 4]);
+      chartCtx.lineWidth = 1.8;
+      chartCtx.beginPath();
+      chartCtx.moveTo(pad.l, y);
+      chartCtx.lineTo(pad.l + chartW, y);
+      chartCtx.stroke();
+      chartCtx.setLineDash([]);
+      chartCtx.fillStyle = '#b06c10';
+      chartCtx.textAlign = 'right';
+      chartCtx.font = 'bold 11px -apple-system, sans-serif';
+      chartCtx.fillText(`Kingman L ≈ ${L.toFixed(2)}`, pad.l + chartW - 6, y - 5);
+    }
+  }
+
+  // Empirical time-average L (customers in system = queue + in service)
+  if (showEmpirical && state.t > 0) {
+    const empL = (state.qAreaAcc + state.busyTimeAcc) / state.t;
+    const y = pad.t + chartH - (chartH * empL) / yMax;
+    if (y > pad.t && y < pad.t + chartH) {
+      chartCtx.strokeStyle = '#2f855a';
+      chartCtx.setLineDash([2, 3]);
+      chartCtx.lineWidth = 1.8;
+      chartCtx.beginPath();
+      chartCtx.moveTo(pad.l, y);
+      chartCtx.lineTo(pad.l + chartW, y);
+      chartCtx.stroke();
+      chartCtx.setLineDash([]);
+      chartCtx.fillStyle = '#1f5e3b';
+      chartCtx.textAlign = 'left';
+      chartCtx.font = 'bold 11px -apple-system, sans-serif';
+      chartCtx.fillText(`Empirical L ≈ ${empL.toFixed(2)}`, pad.l + 6, y - 5);
+    }
+  }
+
+  // Plot queue length step line
+  chartCtx.strokeStyle = '#4E2A84';
+  chartCtx.fillStyle = 'rgba(78, 42, 132, 0.1)';
+  chartCtx.lineWidth = 1.8;
+  chartCtx.beginPath();
+  let started = false;
+  const xAt = t => pad.l + ((t - tMin) / (tMax - tMin)) * chartW;
+  const yAt = q => pad.t + chartH - (chartH * q) / yMax;
+
+  // Filter points in window
+  const pts = state.history.filter(p => p.t >= tMin);
+  if (pts.length === 0) {
+    // nothing yet
+  } else {
+    chartCtx.beginPath();
+    chartCtx.moveTo(xAt(pts[0].t), yAt(pts[0].q));
+    for (let i = 1; i < pts.length; i++) {
+      const prev = pts[i - 1];
+      const cur = pts[i];
+      chartCtx.lineTo(xAt(cur.t), yAt(prev.q));
+      chartCtx.lineTo(xAt(cur.t), yAt(cur.q));
+    }
+    // extend to current time
+    const last = pts[pts.length - 1];
+    chartCtx.lineTo(xAt(state.t), yAt(last.q));
+    chartCtx.stroke();
+
+    // area fill
+    chartCtx.lineTo(xAt(state.t), pad.t + chartH);
+    chartCtx.lineTo(xAt(pts[0].t), pad.t + chartH);
+    chartCtx.closePath();
+    chartCtx.fill();
+  }
+}
+
+function redraw() {
+  drawSim();
+  drawChart();
+}
+
+// Escalating panic messages for classroom dramatic effect
+// Each tier has multiple options that rotate so repeated visits feel fresh.
+const PANIC_TIERS = [
+  { max: 0,     bg: '#edf7ee', fg: '#2f855a', shake: false, msgs: [
+    'All clear.',
+    'No one waiting. The server is filing their nails.',
+    'Peaceful. Too peaceful.',
+  ]},
+  { max: 4,     bg: '#edf7ee', fg: '#2f855a', shake: false, msgs: [
+    'Smooth sailing.',
+    'Everything is fine.',
+    'Short line, happy customers.',
+  ]},
+  { max: 9,     bg: '#fefdf3', fg: '#976a06', shake: false, msgs: [
+    'Queue is building.',
+    'A small line is forming.',
+    'Things are picking up.',
+  ]},
+  { max: 19,    bg: '#fff7e0', fg: '#b97b0a', shake: false, msgs: [
+    'Customers are checking their watches.',
+    'Toes are being tapped.',
+    'The magazines in the waiting area are suddenly popular.',
+  ]},
+  { max: 34,    bg: '#fff0d1', fg: '#c46b1d', shake: false, msgs: [
+    'Someone just asked to speak to a manager.',
+    'Eyes are being rolled.',
+    'A customer is loudly explaining what good service looks like.',
+  ]},
+  { max: 49,    bg: '#ffe6cc', fg: '#c05621', shake: false, msgs: [
+    'The complaint hotline is jammed.',
+    'A group chat has formed with the word "ridiculous" in the title.',
+    'Angry one-star reviews are being drafted.',
+  ]},
+  { max: 74,    bg: '#ffd9c4', fg: '#c53030', shake: false, msgs: [
+    'Yelp reviews are being composed in real time.',
+    'The ops manager has stopped answering Slack.',
+    'Customers have started trading snacks and life stories.',
+  ]},
+  { max: 99,    bg: '#ffc8b0', fg: '#9b2c2c', shake: true, msgs: [
+    'The fire marshal is on the way.',
+    'Someone brought a folding chair. Then a cooler.',
+    'A customer is leading a round of "The Wheels on the Bus."',
+  ]},
+  { max: 149,   bg: '#ffb199', fg: '#742a2a', shake: true, msgs: [
+    'We have exceeded the building occupancy limit.',
+    'A journalist just started asking questions.',
+    'Two people have fainted. No one noticed.',
+  ]},
+  { max: 249,   bg: '#ff9b7e', fg: '#742a2a', shake: true, msgs: [
+    'Someone has started a petition.',
+    'The queue has formed its own union.',
+    'A second queue has formed to complain about the first queue.',
+  ]},
+  { max: 399,   bg: '#ff7f5e', fg: 'white',   shake: true, msgs: [
+    'Local news is setting up cameras outside.',
+    'The queue has extended into the parking lot.',
+    'Reinforcements will not arrive in time.',
+  ]},
+  { max: 599,   bg: '#e53e3e', fg: 'white',   shake: true, msgs: [
+    'The CEO has demanded an explanation.',
+    'Lawyers are reviewing the waiver language.',
+    'Twitter has noticed. It is trending.',
+  ]},
+  { max: 999,   bg: '#c53030', fg: 'white',   shake: true, msgs: [
+    'Corporate has dispatched a crisis team.',
+    'An emergency all-hands has been called.',
+    'The consultants have arrived with laminated slides.',
+  ]},
+  { max: 2499,  bg: '#9b2c2c', fg: 'white',   shake: true, msgs: [
+    'HR is drafting a public apology.',
+    'The board is convening an emergency call.',
+    'The stock price just dipped 8%.',
+  ]},
+  { max: Infinity, bg: '#5a1a1a', fg: 'white', shake: true, msgs: [
+    'This is now a case study at Kellogg.',
+    'MBA students will be debating this for years.',
+    'An HBR article is being commissioned. You are the villain.',
+  ]},
+];
+
+// Panic state: only pick a new message when the tier changes OR when enough wall
+// time has passed within the same tier (so a long dwell feels alive, not stale).
+const _panicState = { lastTierIdx: -1, lastMsgTime: 0, currentMsg: '' };
+const PANIC_ROTATE_MS = 4000;
+
+function pickDifferent(arr, current) {
+  if (arr.length <= 1) return arr[0];
+  let next;
+  let tries = 0;
+  do {
+    next = arr[Math.floor(Math.random() * arr.length)];
+    tries++;
+  } while (next === current && tries < 10);
+  return next;
+}
+
+function updatePanic(qLen) {
+  const el = document.getElementById('panicMsg');
+  const tierIdx = PANIC_TIERS.findIndex(t => qLen <= t.max);
+  const tier = PANIC_TIERS[tierIdx];
+  const now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+  const tierChanged = tierIdx !== _panicState.lastTierIdx;
+  const shouldRotate = (now - _panicState.lastMsgTime > PANIC_ROTATE_MS) && tier.msgs.length > 1;
+  if (tierChanged || shouldRotate) {
+    _panicState.currentMsg = pickDifferent(tier.msgs, _panicState.currentMsg);
+    _panicState.lastTierIdx = tierIdx;
+    _panicState.lastMsgTime = now;
+  }
+  el.textContent = _panicState.currentMsg;
+  el.style.background = tier.bg;
+  el.style.color = tier.fg;
+  el.classList.toggle('shaking', tier.shake);
+}
+
+function updateStats() {
+  document.getElementById('statTime').textContent = state.t.toLocaleString(undefined, {maximumFractionDigits: 1});
+  const qLen = state.queue.length + (state.inService ? 1 : 0);
+  document.getElementById('statQ').textContent = qLen.toLocaleString();
+  const Lq = state.t > 0 ? state.qAreaAcc / state.t : 0;
+  document.getElementById('statLq').textContent = Lq.toFixed(2);
+  const Wq = state.served > 0 ? state.totalWait / state.served : 0;
+  document.getElementById('statWq').textContent = Wq.toFixed(2);
+  const rho = state.t > 0 ? state.busyTimeAcc / state.t : 0;
+  document.getElementById('statRho').textContent = (rho * 100).toFixed(0) + '%';
+  const thru = state.t > 0 ? state.served / state.t : 0;
+  document.getElementById('statThru').textContent = thru.toFixed(2);
+  updatePanic(qLen);
+}
+
+// ================ Main loop ================
+let lastWallTime = null;
+function frame(wallT) {
+  if (state.running) {
+    if (lastWallTime === null) lastWallTime = wallT;
+    const wallDt = (wallT - lastWallTime) / 1000; // seconds
+    lastWallTime = wallT;
+    const simDt = wallDt * params.speed; // sim minutes elapsed
+    stepSimTo(state.t + simDt);
+    redraw();
+    updateStats();
+  } else {
+    lastWallTime = wallT;
+  }
+  requestAnimationFrame(frame);
+}
+
+document.getElementById('playBtn').addEventListener('click', () => {
+  state.running = true;
+  lastWallTime = null;
+});
+document.getElementById('pauseBtn').addEventListener('click', () => {
+  state.running = false;
+});
+document.getElementById('resetBtn').addEventListener('click', () => {
+  resetState();
+});
+document.getElementById('showKingman').addEventListener('change', redraw);
+document.getElementById('showEmpirical').addEventListener('change', redraw);
+
+// Handle resize
+window.addEventListener('resize', redraw);
+
+// Boot
+resetState();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

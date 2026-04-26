@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Process Flow Capacity Simulation Preview</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useState, useEffect } = React;
+
+      // Simple icon placeholders for preview (no lucide-react in this static setup)
+      const Icon = ({ label }) => (
+        <span
+          aria-hidden="true"
+          className="inline-flex items-center justify-center w-5 h-5 rounded bg-white/20 text-white text-[10px] font-bold"
+          title={label}
+        >
+          {label.slice(0, 1)}
+        </span>
+      );
+
+      const RotateCcw = () => <Icon label="Reset" />;
+
+      const ProcessFlowSimulation = () => {
+
+        // Station definitions
+        const stations = {
+          A: { time: 2, resource: 'Kyle', x: 150, y: 180 },
+          B: { time: 2, resource: 'Kenny', x: 380, y: 290 },
+          C: { time: 2, resource: 'Eric', x: 620, y: 290 },
+          D: { time: 3, resource: 'Stan', x: 500, y: 80 },
+          E: { time: 2, resource: 'Timmy', x: 900, y: 180 }
+        };
+
+        const createEmptyStations = () => ({
+          A: { current: null, remaining: 0, queue: [] },
+          B: { current: null, remaining: 0, queue: [] },
+          C: { current: null, remaining: 0, queue: [] },
+          D: { current: null, remaining: 0, queue: [] },
+          E: { current: null, remaining: 0, queue: [] }
+        });
+
+        const initialStations = createEmptyStations();
+        initialStations.A.current = { jobId: 1, stage: 'A' };
+        initialStations.A.remaining = stations.A.time;
+
+        const [timeline, setTimeline] = useState({
+          history: [{
+            time: 0,
+            stationsState: initialStations,
+            nextJobId: 2,
+            completedJobs: 0,
+            branches: { 1: { bDone: false, dDone: false, inE: false } }
+          }],
+          index: 0
+        });
+        const sim = timeline.history[timeline.index];
+
+        // Reset simulation
+        const reset = () => {
+          const resetStations = createEmptyStations();
+          resetStations.A.current = { jobId: 1, stage: 'A' };
+          resetStations.A.remaining = stations.A.time;
+          setTimeline({
+            history: [{
+              time: 0,
+              stationsState: resetStations,
+              nextJobId: 2,
+              completedJobs: 0,
+              branches: { 1: { bDone: false, dDone: false, inE: false } }
+            }],
+            index: 0
+          });
+        };
+
+        const buildNextState = (prev) => {
+          const nextTime = prev.time + 1;
+          const next = {
+            time: nextTime,
+            stationsState: {
+              A: { ...prev.stationsState.A, queue: [...prev.stationsState.A.queue] },
+              B: { ...prev.stationsState.B, queue: [...prev.stationsState.B.queue] },
+              C: { ...prev.stationsState.C, queue: [...prev.stationsState.C.queue] },
+              D: { ...prev.stationsState.D, queue: [...prev.stationsState.D.queue] },
+              E: { ...prev.stationsState.E, queue: [...prev.stationsState.E.queue] }
+            },
+            nextJobId: prev.nextJobId,
+            completedJobs: prev.completedJobs,
+            branches: Object.fromEntries(
+              Object.entries(prev.branches).map(([key, value]) => [key, { ...value }])
+            )
+          };
+
+          const stationKeys = ['A', 'B', 'C', 'D', 'E'];
+
+          // Process one hour of work at each station (for jobs already in service)
+          stationKeys.forEach(key => {
+            const stationState = next.stationsState[key];
+            if (!stationState.current) return;
+
+            stationState.remaining -= 1;
+
+            if (stationState.remaining > 0) return;
+
+            const finishedJob = stationState.current;
+            stationState.current = null;
+            stationState.remaining = 0;
+
+            if (key === 'A') {
+              // Split into two branches
+              next.stationsState.B.queue.push({ jobId: finishedJob.jobId, stage: 'B' });
+              next.stationsState.D.queue.push({ jobId: finishedJob.jobId, stage: 'D' });
+              return;
+            }
+
+            if (key === 'B') {
+              next.stationsState.C.queue.push({ jobId: finishedJob.jobId, stage: 'C' });
+              return;
+            }
+
+            if (key === 'C') {
+              if (next.branches[finishedJob.jobId]) {
+                next.branches[finishedJob.jobId].bDone = true;
+              }
+              return;
+            }
+
+            if (key === 'D') {
+              if (next.branches[finishedJob.jobId]) {
+                next.branches[finishedJob.jobId].dDone = true;
+              }
+              return;
+            }
+
+            if (key === 'E') {
+              next.completedJobs += 1;
+              delete next.branches[finishedJob.jobId];
+            }
+          });
+
+          // Join: only after both branches complete
+          Object.entries(next.branches).forEach(([jobId, status]) => {
+            if (status.bDone && status.dDone && !status.inE) {
+              next.stationsState.E.queue.push({ jobId: Number(jobId), stage: 'E' });
+              status.inE = true;
+            }
+          });
+
+          // Add a new job every 2 hours
+          if (nextTime % 2 === 0) {
+            const newJobId = next.nextJobId;
+            next.nextJobId += 1;
+            next.stationsState.A.queue.push({ jobId: newJobId, stage: 'A' });
+            next.branches[newJobId] = { bDone: false, dDone: false, inE: false };
+          }
+
+          // Start any newly queued jobs after joins
+          stationKeys.forEach(key => {
+            const stationState = next.stationsState[key];
+            if (!stationState.current && stationState.queue.length > 0) {
+              stationState.current = stationState.queue.shift();
+              stationState.remaining = stations[key].time;
+            }
+          });
+
+          return next;
+        };
+
+        const stepForward = () => {
+          setTimeline(prev => {
+            const truncated = prev.history.slice(0, prev.index + 1);
+            const next = buildNextState(truncated[truncated.length - 1]);
+            return { history: [...truncated, next], index: prev.index + 1 };
+          });
+        };
+
+        const stepBackward = () => {
+          setTimeline(prev => ({ ...prev, index: Math.max(0, prev.index - 1) }));
+        };
+
+        useEffect(() => {
+          const onKeyDown = (event) => {
+            if (event.key === 'ArrowRight') {
+              event.preventDefault();
+              stepForward();
+            }
+            if (event.key === 'ArrowLeft') {
+              event.preventDefault();
+              stepBackward();
+            }
+          };
+
+          window.addEventListener('keydown', onKeyDown);
+          return () => window.removeEventListener('keydown', onKeyDown);
+        }, []);
+
+        const getJobPosition = (stationKey, index) => {
+          const station = stations[stationKey];
+          const offsetX = index === 0 ? 0 : 40 + (index - 1) * 18;
+          return { x: station.x - offsetX, y: station.y + (index > 0 ? 24 : 0) };
+        };
+
+        const tokens = [];
+        Object.keys(sim.stationsState).forEach(key => {
+          const stationState = sim.stationsState[key];
+          if (stationState.current) {
+            const totalTime = stations[key].time;
+            const progress = Math.max(0, Math.min(1, 1 - stationState.remaining / totalTime));
+            tokens.push({
+              jobId: stationState.current.jobId,
+              station: key,
+              status: 'active',
+              index: 0,
+              progress
+            });
+          }
+          stationState.queue.forEach((queued, idx) => {
+            tokens.push({
+              jobId: queued.jobId,
+              station: key,
+              status: 'waiting',
+              index: idx + 1
+            });
+          });
+        });
+
+        const stationLoad = Object.keys(sim.stationsState).reduce((acc, key) => {
+          const stationState = sim.stationsState[key];
+          acc[key] = stationState.queue.length + (stationState.current ? 1 : 0);
+          return acc;
+        }, {});
+
+        const joinWaitTokens = Object.entries(sim.branches)
+          .filter(([, status]) => status.bDone && !status.dDone && !status.inE)
+          .map(([jobId], idx) => ({ jobId: Number(jobId), index: idx }));
+
+        const joinWaitUpperTokens = Object.entries(sim.branches)
+          .filter(([, status]) => status.dDone && !status.bDone && !status.inE)
+          .map(([jobId], idx) => ({ jobId: Number(jobId), index: idx }));
+
+        const jobsInSystem = tokens.length + joinWaitTokens.length + joinWaitUpperTokens.length;
+
+        return (
+          <div className="w-full min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+            <div className="max-w-7xl mx-auto">
+              {/* Header */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h1 className="text-3xl font-bold text-slate-800 mb-2">Process Flow Capacity Simulation</h1>
+                <p className="text-slate-600">Every 2 hours a new job enters, splits after Kyle, and must rejoin before Timmy can start</p>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="bg-white rounded-lg shadow p-4">
+                  <div className="text-sm text-slate-600">Current Time</div>
+                  <div className="text-3xl font-bold text-blue-600">{sim.time} hrs</div>
+                </div>
+                <div className="bg-white rounded-lg shadow p-4">
+                  <div className="text-sm text-slate-600">Jobs in System</div>
+                  <div className="text-3xl font-bold text-green-600">{jobsInSystem}</div>
+                </div>
+                <div className="bg-white rounded-lg shadow p-4">
+                  <div className="text-sm text-slate-600">Completed Jobs</div>
+                  <div className="text-3xl font-bold text-purple-600">{sim.completedJobs}</div>
+                </div>
+              </div>
+
+              {/* Controls */}
+              <div className="bg-white rounded-lg shadow p-4 mb-6 flex items-center gap-4">
+                <button
+                  onClick={reset}
+                  className="px-6 py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition flex items-center gap-2"
+                >
+                  <RotateCcw />
+                  Reset
+                </button>
+                <div className="ml-auto text-slate-600 text-sm">
+                  Use ← / → to step backward or forward one hour
+                </div>
+              </div>
+
+              {/* Process Flow Diagram */}
+              <div className="bg-white rounded-lg shadow-lg p-8">
+                <svg width="1100" height="400" className="w-full">
+                  {/* Arrows */}
+                  <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+                    </marker>
+                  </defs>
+
+                  {/* A to D */}
+                  <line x1="230" y1="150" x2="430" y2="110" stroke="#64748b" strokeWidth="3" markerEnd="url(#arrowhead)" />
+
+                  {/* A to B */}
+                  <line x1="230" y1="210" x2="300" y2="280" stroke="#64748b" strokeWidth="3" markerEnd="url(#arrowhead)" />
+
+                  {/* B to C */}
+                  <line x1="460" y1="290" x2="540" y2="290" stroke="#64748b" strokeWidth="3" markerEnd="url(#arrowhead)" />
+
+                  {/* C to E */}
+                  <line x1="700" y1="260" x2="820" y2="210" stroke="#64748b" strokeWidth="3" markerEnd="url(#arrowhead)" />
+
+                  {/* D to E */}
+                  <line x1="580" y1="110" x2="820" y2="150" stroke="#64748b" strokeWidth="3" markerEnd="url(#arrowhead)" />
+
+                  {/* Join-wait jobs (Stan done, waiting on Eric) */}
+                  {joinWaitUpperTokens.map(token => {
+                    const x = 700 - token.index * 26;
+                    const y = 135;
+                    return (
+                      <g key={`join-wait-upper-${token.jobId}`}>
+                        <circle cx={x} cy={y} r="16" fill="#fbbf24" stroke="#92400e" strokeWidth="2" />
+                        <text x={x} y={y + 5} textAnchor="middle" className="text-xs font-bold fill-white">
+                          {token.jobId}
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  {/* Join-wait jobs (Eric done, waiting on Stan) */}
+                  {joinWaitTokens.map(token => {
+                    const x = 760 - token.index * 26;
+                    const y = 235;
+                    return (
+                      <g key={`join-wait-${token.jobId}`}>
+                        <circle cx={x} cy={y} r="16" fill="#fbbf24" stroke="#92400e" strokeWidth="2" />
+                        <text x={x} y={y + 5} textAnchor="middle" className="text-xs font-bold fill-white">
+                          {token.jobId}
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  {/* Load badges (jobs in/queued for each station) */}
+                  <g>
+                    <rect x="35" y="170" width="36" height="20" rx="10" fill="#0f172a" opacity="0.85" />
+                    <text x="53" y="184" textAnchor="middle" className="text-xs fill-white">A:{stationLoad.A}</text>
+
+                    <rect x="260" y="265" width="36" height="20" rx="10" fill="#0f172a" opacity="0.85" />
+                    <text x="278" y="279" textAnchor="middle" className="text-xs fill-white">B:{stationLoad.B}</text>
+
+                    <rect x="500" y="265" width="36" height="20" rx="10" fill="#0f172a" opacity="0.85" />
+                    <text x="518" y="279" textAnchor="middle" className="text-xs fill-white">C:{stationLoad.C}</text>
+
+                    <rect x="390" y="90" width="36" height="20" rx="10" fill="#7f1d1d" opacity="0.9" />
+                    <text x="408" y="104" textAnchor="middle" className="text-xs fill-white">D:{stationLoad.D}</text>
+
+                    <rect x="780" y="160" width="36" height="20" rx="10" fill="#0f172a" opacity="0.85" />
+                    <text x="798" y="174" textAnchor="middle" className="text-xs fill-white">E:{stationLoad.E}</text>
+                  </g>
+
+                  {/* Station A */}
+                  <rect x="70" y="150" width="160" height="80" fill="#e2e8f0" stroke="#475569" strokeWidth="2" rx="4" />
+                  <text x="150" y="185" textAnchor="middle" className="text-2xl font-bold fill-slate-700">A</text>
+                  <text x="150" y="210" textAnchor="middle" className="text-sm fill-slate-600">2hrs - Kyle</text>
+
+                  {/* Station B */}
+                  <rect x="300" y="260" width="160" height="80" fill="#e2e8f0" stroke="#475569" strokeWidth="2" rx="4" />
+                  <text x="380" y="295" textAnchor="middle" className="text-2xl font-bold fill-slate-700">B</text>
+                  <text x="380" y="320" textAnchor="middle" className="text-sm fill-slate-600">2hrs - Kenny</text>
+
+                  {/* Station C */}
+                  <rect x="540" y="260" width="160" height="80" fill="#e2e8f0" stroke="#475569" strokeWidth="2" rx="4" />
+                  <text x="620" y="295" textAnchor="middle" className="text-2xl font-bold fill-slate-700">C</text>
+                  <text x="620" y="320" textAnchor="middle" className="text-sm fill-slate-600">2hrs - Eric</text>
+
+                  {/* Station D (Bottleneck) */}
+                  <rect x="430" y="50" width="160" height="80" fill="#fecaca" stroke="#dc2626" strokeWidth="3" rx="4" />
+                  <text x="510" y="85" textAnchor="middle" className="text-2xl font-bold fill-red-700">D</text>
+                  <text x="510" y="110" textAnchor="middle" className="text-sm fill-red-700 font-semibold">3hrs - Stan</text>
+                  <text x="510" y="125" textAnchor="middle" className="text-xs fill-red-600 font-bold">BOTTLENECK</text>
+
+                  {/* Station E */}
+                  <rect x="820" y="150" width="160" height="80" fill="#e2e8f0" stroke="#475569" strokeWidth="2" rx="4" />
+                  <text x="900" y="185" textAnchor="middle" className="text-2xl font-bold fill-slate-700">E</text>
+                  <text x="900" y="210" textAnchor="middle" className="text-sm fill-slate-600">2hrs - Timmy</text>
+
+                  {/* Jobs */}
+                  {tokens.map(token => {
+                    const pos = getJobPosition(token.station, token.index);
+
+                    return (
+                      <g key={`${token.station}-${token.jobId}-${token.index}`}>
+                        {/* Job circle */}
+                        <circle
+                          cx={pos.x}
+                          cy={pos.y}
+                          r="20"
+                          fill={token.status === 'waiting' ? "#fbbf24" : "#3b82f6"}
+                          stroke="#1e40af"
+                          strokeWidth="2"
+                        />
+                        <text
+                          x={pos.x}
+                          y={pos.y + 5}
+                          textAnchor="middle"
+                          className="text-sm font-bold fill-white"
+                        >
+                          {token.jobId}
+                        </text>
+
+                        {/* Progress indicator */}
+                        {token.status === 'active' && token.progress > 0 && (
+                          <circle
+                            cx={pos.x}
+                            cy={pos.y}
+                            r="24"
+                            fill="none"
+                            stroke="#10b981"
+                            strokeWidth="3"
+                            strokeDasharray={`${token.progress * 150} 150`}
+                            transform={`rotate(-90 ${pos.x} ${pos.y})`}
+                          />
+                        )}
+
+                      </g>
+                    );
+                  })}
+                </svg>
+
+                {/* Legend */}
+                <div className="mt-6 flex gap-6 justify-center text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-blue-500 border-2 border-blue-800"></div>
+                    <span>Active Job</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-amber-400 border-2 border-blue-800"></div>
+                    <span>Waiting Job</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-5 bg-slate-900 rounded-full"></div>
+                    <span>Jobs at Station</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-12 h-6 bg-red-200 border-2 border-red-600 rounded"></div>
+                    <span>Bottleneck Station</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Insights */}
+              <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow p-6 border border-blue-200">
+                <h3 className="text-lg font-bold text-slate-800 mb-3">📊 Key Insights</h3>
+                <ul className="space-y-2 text-slate-700">
+                  <li className="flex items-start gap-2">
+                    <span className="text-red-600 font-bold">•</span>
+                    <span><strong>Station D (Stan)</strong> takes 3 hours while all others take 2 hours, making it the <strong>bottleneck</strong></span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-600 font-bold">•</span>
+                    <span>Each job <strong>splits into two branches</strong> after Kyle and must <strong>rejoin</strong> before Timmy can start</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600 font-bold">•</span>
+                    <span>System capacity is limited by the <strong>slowest branch</strong> (Stan's 3-hour station)</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<ProcessFlowSimulation />);
+    </script>
+  </body>
+</html>

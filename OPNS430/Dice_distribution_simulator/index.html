@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dice Distribution Simulator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #f7f7f5;
+    color: #2b2b2b;
+  }
+  .app {
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 24px 32px;
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 32px;
+    min-height: 100vh;
+  }
+  header {
+    grid-column: 1 / -1;
+    border-bottom: 2px solid #4e2a84;
+    padding-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  h1 { font-size: 24px; font-weight: 600; color: #4e2a84; letter-spacing: -0.01em; }
+  .subtitle { font-size: 13px; color: #666; margin-top: 2px; }
+
+  .dice-panel {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px 28px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .dice-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+    min-height: 150px;
+    padding: 10px 0;
+  }
+  .die {
+    background: #fff;
+    border: 2px solid #2b2b2b;
+    border-radius: 12px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+    transition: transform 0.25s cubic-bezier(.34,1.56,.64,1);
+    flex-shrink: 0;
+  }
+  .die.rolling { animation: shake 0.35s ease-in-out; }
+  @keyframes shake {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-10deg) translateY(-5px); }
+    75% { transform: rotate(10deg) translateY(-3px); }
+  }
+  .pip {
+    border-radius: 50%;
+    background: #2b2b2b;
+    align-self: center;
+    justify-self: center;
+    visibility: hidden;
+  }
+  .die.compact {
+    border-radius: 6px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #2b2b2b;
+  }
+
+  .sum-line {
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    font-size: 15px;
+    color: #555;
+    flex-wrap: wrap;
+  }
+  .sum-line .stat strong {
+    font-size: 26px;
+    color: #4e2a84;
+    font-weight: 700;
+    margin-left: 6px;
+  }
+
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 14px 16px;
+    background: #faf8fd;
+    border-radius: 10px;
+    border: 1px solid #eee4f3;
+  }
+  .control-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .control-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #4e2a84;
+    min-width: 110px;
+  }
+  .slider-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 180px;
+  }
+  input[type=range] {
+    flex: 1;
+    accent-color: #4e2a84;
+  }
+  .n-value {
+    font-weight: 700;
+    color: #4e2a84;
+    min-width: 28px;
+    text-align: right;
+    font-size: 16px;
+  }
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; }
+  .preset {
+    background: #fff;
+    border: 1px solid #d9cce8;
+    color: #4e2a84;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  .preset:hover { background: #ece4f5; }
+  .preset.active { background: #4e2a84; color: #fff; border-color: #4e2a84; }
+
+  .buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  button {
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 22px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-primary {
+    background: #4e2a84; color: #fff; font-size: 17px; padding: 13px 32px;
+  }
+  .btn-primary:hover { background: #3b1f66; transform: translateY(-1px); }
+  .btn-secondary { background: #e8e4f0; color: #4e2a84; }
+  .btn-secondary:hover { background: #d9d1e6; }
+  .btn-ghost { background: transparent; color: #888; border: 1px solid #ddd; }
+  .btn-ghost:hover { background: #f0f0f0; color: #444; }
+
+  .hist-panel {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px 28px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+  }
+  .hist-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .hist-title { font-size: 17px; font-weight: 600; color: #333; }
+  .total-rolls { font-size: 13px; color: #666; }
+  .total-rolls strong { font-size: 18px; color: #4e2a84; font-weight: 700; margin-left: 4px; }
+
+  .toggle {
+    display: inline-flex;
+    background: #f0ecf5;
+    border-radius: 8px;
+    padding: 3px;
+    margin-bottom: 14px;
+  }
+  .toggle button {
+    background: transparent;
+    color: #666;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 6px;
+  }
+  .toggle button.active {
+    background: #fff;
+    color: #4e2a84;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+
+  .chart {
+    flex: 1;
+    min-height: 380px;
+    position: relative;
+  }
+  svg { width: 100%; height: 100%; display: block; }
+  .bar { fill: #4e2a84; transition: height 0.2s ease, y 0.2s ease, fill 0.15s ease; }
+  .bar.highlight { fill: #f2a900; }
+  .axis-label { font-size: 12px; fill: #666; }
+  .axis-line { stroke: #ccc; stroke-width: 1; }
+  .tick-label { font-size: 11px; fill: #888; }
+  .mean-line { stroke: #c0392b; stroke-width: 1.5; stroke-dasharray: 4,3; }
+  .mean-label { font-size: 11px; fill: #c0392b; font-weight: 600; }
+
+  .legend {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #666;
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .legend-dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+
+  @media (max-width: 1000px) {
+    .app { grid-template-columns: 1fr; padding: 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>Rolling N Dice — A Distribution Emerges</h1>
+      <div class="subtitle">Operations Management · Kellogg School of Management</div>
+    </div>
+    <div class="total-rolls">Total rolls:<strong id="totalRolls">0</strong></div>
+  </header>
+
+  <section class="dice-panel">
+    <div class="dice-row" id="diceRow"></div>
+
+    <div class="sum-line">
+      <div class="stat">Sum:<strong id="sumValue">—</strong></div>
+      <div class="stat">Average:<strong id="avgValue">—</strong></div>
+    </div>
+
+    <div class="controls">
+      <div class="control-row">
+        <div class="control-label">Number of dice</div>
+        <div class="slider-wrap">
+          <input type="range" id="nSlider" min="1" max="50" value="3">
+          <span class="n-value" id="nValue">3</span>
+        </div>
+      </div>
+      <div class="control-row">
+        <div class="control-label" style="visibility:hidden">spacer</div>
+        <div class="presets" id="presets">
+          <button class="preset" data-n="1">1</button>
+          <button class="preset" data-n="2">2</button>
+          <button class="preset active" data-n="3">3</button>
+          <button class="preset" data-n="5">5</button>
+          <button class="preset" data-n="10">10</button>
+          <button class="preset" data-n="20">20</button>
+          <button class="preset" data-n="50">50</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button class="btn-primary" id="rollBtn">Roll Dice</button>
+      <button class="btn-secondary" id="roll10">Roll 10×</button>
+      <button class="btn-secondary" id="roll100">Roll 100×</button>
+      <button class="btn-secondary" id="roll1000">Roll 1000×</button>
+      <button class="btn-ghost" id="resetBtn">Reset</button>
+    </div>
+  </section>
+
+  <section class="hist-panel">
+    <div class="hist-header">
+      <div class="hist-title" id="chartTitle">Distribution of Sum</div>
+    </div>
+
+    <div class="toggle" role="tablist">
+      <button class="active" data-mode="sum">Sum</button>
+      <button data-mode="average">Average</button>
+      <button data-mode="single">Individual die values</button>
+    </div>
+
+    <div class="chart">
+      <svg id="chart" viewBox="0 0 720 420" preserveAspectRatio="none"></svg>
+    </div>
+
+    <div class="legend">
+      <span><span class="legend-dot" style="background:#4e2a84"></span>Observed frequency (normalized)</span>
+      <span><span class="legend-dot" style="background:#f2a900"></span>Most recent roll</span>
+    </div>
+  </section>
+</div>
+
+<script>
+const PIP_POSITIONS = {
+  1: [[2,2]],
+  2: [[1,1],[3,3]],
+  3: [[1,1],[2,2],[3,3]],
+  4: [[1,1],[1,3],[3,1],[3,3]],
+  5: [[1,1],[1,3],[2,2],[3,1],[3,3]],
+  6: [[1,1],[1,3],[2,1],[2,3],[3,1],[3,3]],
+};
+
+function dieSizeForN(n) {
+  if (n <= 3) return 110;
+  if (n <= 5) return 90;
+  if (n <= 8) return 70;
+  if (n <= 12) return 55;
+  if (n <= 20) return 42;
+  if (n <= 30) return 34;
+  return 28;
+}
+
+function renderDieFace(el, face, compact, dieSize) {
+  el.innerHTML = '';
+  if (compact) {
+    el.classList.add('compact');
+    el.textContent = face;
+    return;
+  }
+  el.classList.remove('compact');
+  const pipSize = Math.max(4, Math.round(dieSize * 0.16));
+  const positions = new Set(PIP_POSITIONS[face].map(p => `${p[0]},${p[1]}`));
+  for (let r = 1; r <= 3; r++) {
+    for (let c = 1; c <= 3; c++) {
+      const pip = document.createElement('div');
+      pip.className = 'pip';
+      pip.style.gridRow = r;
+      pip.style.gridColumn = c;
+      pip.style.width = pipSize + 'px';
+      pip.style.height = pipSize + 'px';
+      if (positions.has(`${r},${c}`)) pip.style.visibility = 'visible';
+      el.appendChild(pip);
+    }
+  }
+}
+
+let numDice = 3;
+let mode = 'sum';
+let totalRolls = 0;
+let sumCounts = {};
+let singleDieCounts = {1:0,2:0,3:0,4:0,5:0,6:0};
+let lastSum = null;
+
+function resetCounts() {
+  totalRolls = 0;
+  sumCounts = {};
+  for (let s = numDice; s <= 6 * numDice; s++) sumCounts[s] = 0;
+  for (let k = 1; k <= 6; k++) singleDieCounts[k] = 0;
+  lastSum = null;
+  document.getElementById('sumValue').textContent = '—';
+  document.getElementById('avgValue').textContent = '—';
+  document.getElementById('totalRolls').textContent = '0';
+}
+
+const diceRow = document.getElementById('diceRow');
+
+function rebuildDiceRow() {
+  diceRow.innerHTML = '';
+  const size = dieSizeForN(numDice);
+  const compact = numDice > 20;
+  const pad = Math.max(2, Math.round(size * 0.1));
+  for (let i = 0; i < numDice; i++) {
+    const el = document.createElement('div');
+    el.className = 'die';
+    el.style.width = size + 'px';
+    el.style.height = size + 'px';
+    el.dataset.size = size;
+    if (compact) {
+      el.style.fontSize = Math.max(12, size * 0.5) + 'px';
+    } else {
+      el.style.padding = pad + 'px';
+    }
+    renderDieFace(el, 1, compact, size);
+    diceRow.appendChild(el);
+  }
+}
+
+function rollOnce(animate = true) {
+  const faces = [];
+  let sum = 0;
+  for (let i = 0; i < numDice; i++) {
+    const f = 1 + Math.floor(Math.random() * 6);
+    faces.push(f);
+    sum += f;
+    singleDieCounts[f]++;
+  }
+  sumCounts[sum] = (sumCounts[sum] || 0) + 1;
+  totalRolls++;
+  lastSum = sum;
+
+  const compact = numDice > 20;
+  const dice = diceRow.children;
+  const size = dieSizeForN(numDice);
+  for (let i = 0; i < numDice; i++) {
+    renderDieFace(dice[i], faces[i], compact, size);
+    if (animate && numDice <= 20) {
+      dice[i].classList.remove('rolling');
+      void dice[i].offsetWidth;
+      dice[i].classList.add('rolling');
+    }
+  }
+  document.getElementById('sumValue').textContent = sum;
+  document.getElementById('avgValue').textContent = (sum / numDice).toFixed(2);
+  document.getElementById('totalRolls').textContent = totalRolls;
+}
+
+function rollMany(n) {
+  for (let i = 0; i < n; i++) rollOnce(false);
+  drawChart();
+}
+
+document.getElementById('rollBtn').addEventListener('click', () => { rollOnce(true); drawChart(); });
+document.getElementById('roll10').addEventListener('click', () => rollMany(10));
+document.getElementById('roll100').addEventListener('click', () => rollMany(100));
+document.getElementById('roll1000').addEventListener('click', () => rollMany(1000));
+document.getElementById('resetBtn').addEventListener('click', () => {
+  resetCounts();
+  rebuildDiceRow();
+  drawChart();
+});
+
+const nSlider = document.getElementById('nSlider');
+const nValue = document.getElementById('nValue');
+const presets = document.querySelectorAll('.preset');
+
+function setNumDice(n) {
+  n = Math.max(1, Math.min(50, Math.round(n)));
+  numDice = n;
+  nSlider.value = n;
+  nValue.textContent = n;
+  presets.forEach(p => p.classList.toggle('active', parseInt(p.dataset.n) === n));
+  resetCounts();
+  rebuildDiceRow();
+  drawChart();
+}
+
+nSlider.addEventListener('input', e => setNumDice(parseInt(e.target.value)));
+presets.forEach(p => p.addEventListener('click', () => setNumDice(parseInt(p.dataset.n))));
+
+document.querySelectorAll('.toggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.toggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    mode = btn.dataset.mode;
+    const titles = {
+      sum: 'Distribution of Sum',
+      average: 'Distribution of Average',
+      single: 'Distribution of Individual Die Values'
+    };
+    document.getElementById('chartTitle').textContent = titles[mode];
+    drawChart();
+  });
+});
+
+const chart = document.getElementById('chart');
+
+function drawChart() {
+  const W = 720, H = 420;
+  const marginL = 50, marginR = 18, marginT = 20, marginB = 48;
+  const plotW = W - marginL - marginR;
+  const plotH = H - marginT - marginB;
+
+  let xValues, data, totalForNorm, xAxisLabel, xLabelFormatter, highlightKey;
+
+  if (mode === 'sum') {
+    xValues = [];
+    for (let s = numDice; s <= 6 * numDice; s++) xValues.push(s);
+    data = xValues.map(v => sumCounts[v] || 0);
+    totalForNorm = totalRolls;
+    xAxisLabel = `Sum of ${numDice} ${numDice === 1 ? 'die' : 'dice'}`;
+    xLabelFormatter = v => v;
+    highlightKey = lastSum;
+  } else if (mode === 'average') {
+    xValues = [];
+    for (let s = numDice; s <= 6 * numDice; s++) xValues.push(s);
+    data = xValues.map(v => sumCounts[v] || 0);
+    totalForNorm = totalRolls;
+    xAxisLabel = `Average of ${numDice} ${numDice === 1 ? 'die' : 'dice'}`;
+    xLabelFormatter = v => (v / numDice).toFixed(2);
+    highlightKey = lastSum;
+  } else {
+    xValues = [1,2,3,4,5,6];
+    data = xValues.map(v => singleDieCounts[v]);
+    totalForNorm = totalRolls * numDice;
+    xAxisLabel = 'Die face value';
+    xLabelFormatter = v => v;
+    highlightKey = null;
+  }
+
+  const probs = data.map(c => totalForNorm > 0 ? c / totalForNorm : 0);
+
+  let yMaxRaw = Math.max(...probs, 0.02);
+  let yMax = yMaxRaw * 1.2;
+  const tidy = [0.02, 0.05, 0.1, 0.15, 0.2, 0.25, 0.35, 0.5, 0.75, 1.0];
+  yMax = tidy.find(t => t >= yMax) || 1.0;
+
+  const n = xValues.length;
+  const barGap = n <= 20 ? 4 : (n <= 50 ? 2 : 1);
+  const barW = Math.max(1.5, (plotW - barGap * (n - 1)) / n);
+
+  let svg = '';
+
+  const nTicks = Math.min(6, Math.max(2, Math.round(yMax / (yMax >= 0.2 ? 0.05 : 0.02))));
+  const tickStep = yMax / nTicks;
+  for (let i = 0; i <= nTicks; i++) {
+    const v = i * tickStep;
+    const y = marginT + plotH - (v / yMax) * plotH;
+    svg += `<line class="axis-line" x1="${marginL}" y1="${y}" x2="${W - marginR}" y2="${y}" stroke-dasharray="${i===0?'0':'3,3'}"/>`;
+    svg += `<text class="tick-label" x="${marginL - 6}" y="${y + 4}" text-anchor="end">${v.toFixed(yMax >= 0.2 ? 2 : 3)}</text>`;
+  }
+
+  xValues.forEach((k, i) => {
+    const p = probs[i];
+    const x = marginL + i * (barW + barGap);
+    const h = (p / yMax) * plotH;
+    const y = marginT + plotH - h;
+    const isHL = (highlightKey !== null && k === highlightKey);
+    svg += `<rect class="bar ${isHL ? 'highlight' : ''}" x="${x}" y="${y}" width="${barW}" height="${h}" rx="${Math.min(2, barW/2)}"/>`;
+  });
+
+  if (mode === 'average') {
+    for (let intAvg = 1; intAvg <= 6; intAvg++) {
+      const sumAtAvg = intAvg * numDice;
+      const idx = sumAtAvg - numDice;
+      if (idx < 0 || idx >= n) continue;
+      const x = marginL + idx * (barW + barGap) + barW / 2;
+      svg += `<text class="tick-label" x="${x}" y="${marginT + plotH + 16}" text-anchor="middle">${intAvg.toFixed(1)}</text>`;
+    }
+  } else {
+    const maxLabels = 12;
+    const labelStep = Math.max(1, Math.ceil(n / maxLabels));
+    xValues.forEach((k, i) => {
+      if (i % labelStep === 0 || i === n - 1) {
+        const x = marginL + i * (barW + barGap) + barW / 2;
+        svg += `<text class="tick-label" x="${x}" y="${marginT + plotH + 16}" text-anchor="middle">${xLabelFormatter(k)}</text>`;
+      }
+    });
+  }
+
+  svg += `<text class="axis-label" x="${marginL + plotW/2}" y="${H - 8}" text-anchor="middle">${xAxisLabel}</text>`;
+  svg += `<text class="axis-label" x="${14}" y="${marginT + plotH/2}" text-anchor="middle" transform="rotate(-90, 14, ${marginT + plotH/2})">Relative frequency</text>`;
+
+  chart.innerHTML = svg;
+}
+
+resetCounts();
+rebuildDiceRow();
+drawChart();
+</script>
+</body>
+</html>

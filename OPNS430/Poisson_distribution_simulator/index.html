@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Poisson Distribution Simulator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #f7f7f5;
+    color: #2b2b2b;
+  }
+  .app {
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 24px 32px;
+    display: grid;
+    grid-template-columns: 1fr 1.35fr;
+    gap: 32px;
+    min-height: 100vh;
+  }
+  header {
+    grid-column: 1 / -1;
+    border-bottom: 2px solid #4e2a84;
+    padding-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  h1 { font-size: 24px; font-weight: 600; color: #4e2a84; letter-spacing: -0.01em; }
+  .subtitle { font-size: 13px; color: #666; margin-top: 2px; }
+
+  .panel {
+    background: #fff;
+    border-radius: 12px;
+    padding: 22px 26px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .timeline-section { grid-column: 1 / -1; }
+
+  /* Timeline partition */
+  .timeline-wrap {
+    background: #faf8fd;
+    border: 1px solid #eee4f3;
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+  }
+  .timeline-title { font-size: 13px; font-weight: 600; color: #4e2a84; }
+  .timeline-meta { font-size: 12px; color: #666; }
+  .timeline-meta strong { color: #2b2b2b; font-weight: 600; }
+
+  .timeline-highlights {
+    background: #fff;
+    border: 1px solid #ebe4f2;
+    border-radius: 8px;
+    padding: 14px 22px;
+    margin-bottom: 12px;
+    display: flex;
+    gap: 42px;
+    justify-content: center;
+    flex-wrap: wrap;
+    font-size: 22px;
+    font-weight: 500;
+  }
+  .highlight-row {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+  }
+  .highlight-label { color: #444; }
+  .highlight-value { color: #4e2a84; font-weight: 700; }
+  .highlight-value strong { color: #4e2a84; font-weight: 800; }
+
+  .simulation-status {
+    font-size: 16px;
+    text-align: center;
+    padding: 12px 0 2px;
+    min-height: 36px;
+    color: #888;
+    transition: color 0.15s ease;
+  }
+  .simulation-status.flipping {
+    color: #b8860b;
+    font-style: italic;
+  }
+  .simulation-status.done {
+    color: #2a9d5c;
+    font-weight: 600;
+  }
+  @media (max-width: 900px) {
+    .timeline-highlights { font-size: 16px; gap: 18px; }
+  }
+  .timeline {
+    display: grid;
+    gap: 2px;
+    padding: 14px;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #ebe4f2;
+    min-height: 100px;
+    align-content: stretch;
+  }
+  .cell {
+    background: #e8e8e8;
+    border-radius: 2px;
+    transition: background 0.18s ease, color 0.18s ease;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(44, 44, 44, 0.55);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    user-select: none;
+  }
+  .cell.empty { background: #e8e8e8; }
+  .cell.arrival {
+    background: #2a9d5c;
+    color: rgba(255, 255, 255, 0.92);
+  }
+  .ruler {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #999;
+    margin-top: 6px;
+    padding: 0 10px;
+  }
+
+  .stat-line {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    font-size: 15px;
+    color: #555;
+    flex-wrap: wrap;
+  }
+  .stat-line .stat strong {
+    font-size: 28px;
+    color: #4e2a84;
+    font-weight: 700;
+    margin-left: 6px;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 14px 16px;
+    background: #faf8fd;
+    border-radius: 10px;
+    border: 1px solid #eee4f3;
+  }
+  .control-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .control-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #4e2a84;
+    min-width: 130px;
+  }
+  .slider-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 180px;
+  }
+  input[type=range] { flex: 1; accent-color: #4e2a84; }
+  .n-value {
+    font-weight: 700;
+    color: #4e2a84;
+    min-width: 40px;
+    text-align: right;
+    font-size: 16px;
+  }
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; }
+  .preset {
+    background: #fff;
+    border: 1px solid #d9cce8;
+    color: #4e2a84;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    font-family: inherit;
+    font-weight: 600;
+  }
+  .preset:hover { background: #ece4f5; }
+  .preset.active { background: #4e2a84; color: #fff; border-color: #4e2a84; }
+
+  .buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  button {
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 22px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-primary {
+    background: #4e2a84; color: #fff; font-size: 17px; padding: 13px 30px;
+  }
+  .btn-primary:hover { background: #3b1f66; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  .btn-secondary { background: #e8e4f0; color: #4e2a84; }
+  .btn-secondary:hover { background: #d9d1e6; }
+  .btn-ghost { background: transparent; color: #888; border: 1px solid #ddd; }
+  .btn-ghost:hover { background: #f0f0f0; color: #444; }
+
+  /* Histogram panel */
+  .hist-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .hist-title { font-size: 17px; font-weight: 600; color: #333; }
+  .total-hours { font-size: 13px; color: #666; }
+  .total-hours strong { font-size: 18px; color: #4e2a84; font-weight: 700; margin-left: 4px; }
+
+  .hist-options {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 13px;
+    color: #555;
+    padding: 8px 0;
+  }
+  .hist-options label { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px; }
+  .hist-options input { accent-color: #0f7e8c; }
+
+  .chart { flex: 1; min-height: 360px; position: relative; }
+  svg { width: 100%; height: 100%; display: block; }
+  .bar { fill: #4e2a84; transition: height 0.2s ease, y 0.2s ease, fill 0.15s ease; }
+  .bar.highlight { fill: #f2a900; }
+  .axis-label { font-size: 12px; fill: #666; }
+  .axis-line { stroke: #ccc; stroke-width: 1; }
+  .tick-label { font-size: 11px; fill: #888; }
+  .poisson-line { fill: none; stroke: #0f7e8c; stroke-width: 2; }
+  .poisson-dot { fill: #0f7e8c; }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #faf8fd;
+    border-radius: 10px;
+    border: 1px solid #eee4f3;
+    font-size: 13px;
+  }
+  .metrics .metric-label { color: #666; }
+  .metrics strong { color: #4e2a84; font-size: 15px; }
+  .metrics .theoretical { color: #0f7e8c; }
+  .metrics .theoretical strong { color: #0f7e8c; }
+
+  .legend {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #666;
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .legend-dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+  .legend-line {
+    display: inline-block;
+    width: 14px; height: 2px;
+    background: #0f7e8c;
+    margin-right: 5px;
+    vertical-align: middle;
+    position: relative;
+    top: -3px;
+  }
+
+  @media (max-width: 1000px) {
+    .app { grid-template-columns: 1fr; padding: 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>Customer Arrivals per Hour — Emergence of Poisson</h1>
+      <div class="subtitle">Operations Management · Kellogg School of Management</div>
+    </div>
+    <div class="total-hours">Hours simulated:<strong id="totalHours">0</strong></div>
+  </header>
+
+  <!-- TIMELINE SECTION (full width) -->
+  <section class="panel timeline-section">
+    <div class="timeline-wrap">
+      <div class="timeline-header">
+        <div class="timeline-title">One hour, partitioned into n intervals</div>
+        <div class="timeline-meta">Each cell = <strong id="intervalLen">30.00</strong> min</div>
+      </div>
+
+      <div class="timeline-highlights">
+        <div class="highlight-row">
+          <span class="highlight-label">Probability of 1 arrival per cell:</span>
+          <span class="highlight-value"><strong id="pFormula">1/2</strong> = <strong id="pValue">0.5000</strong></span>
+        </div>
+        <div class="highlight-row">
+          <span class="highlight-label">Average:</span>
+          <span class="highlight-value"><strong id="avgDisplay">1</strong>/hour</span>
+        </div>
+      </div>
+
+      <div class="timeline" id="timeline"></div>
+      <div class="ruler">
+        <span>0 min</span>
+        <span>30 min</span>
+        <span>60 min</span>
+      </div>
+
+      <div class="simulation-status" id="simStatus">&nbsp;</div>
+    </div>
+  </section>
+
+  <!-- LEFT PANEL -->
+  <section class="panel">
+    <div class="stat-line">
+      <div class="stat">Arrivals this hour:<strong id="arrivalsThisHour">—</strong></div>
+    </div>
+
+    <div class="controls">
+      <div class="control-row">
+        <div class="control-label">R<sub>in</sub> (arrivals per hour)</div>
+        <div class="slider-wrap">
+          <input type="range" id="lambdaSlider" min="1" max="20" step="1" value="1">
+          <span class="n-value" id="lambdaValue">1</span>
+        </div>
+      </div>
+      <div class="control-row">
+        <div class="control-label" style="visibility:hidden">spacer</div>
+        <div class="presets" id="lambdaPresets">
+          <button class="preset active" data-lambda="1">1</button>
+          <button class="preset" data-lambda="2">2</button>
+          <button class="preset" data-lambda="3">3</button>
+          <button class="preset" data-lambda="5">5</button>
+          <button class="preset" data-lambda="10">10</button>
+        </div>
+      </div>
+      <div class="control-row">
+        <div class="control-label">n (time slices)</div>
+        <div class="slider-wrap">
+          <input type="range" id="nSlider" min="2" max="300" step="1" value="2">
+          <span class="n-value" id="nValue">2</span>
+        </div>
+      </div>
+      <div class="control-row">
+        <div class="control-label" style="visibility:hidden">spacer</div>
+        <div class="presets" id="nPresets">
+          <button class="preset active" data-n="2">2</button>
+          <button class="preset" data-n="3">3</button>
+          <button class="preset" data-n="4">4</button>
+          <button class="preset" data-n="10">10</button>
+          <button class="preset" data-n="30">30</button>
+          <button class="preset" data-n="60">60</button>
+          <button class="preset" data-n="120">120</button>
+          <button class="preset" data-n="300">300</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button class="btn-primary" id="simBtn">Simulate 1 hour</button>
+      <button class="btn-secondary" id="sim100">Run 100×</button>
+      <button class="btn-secondary" id="sim1000">Run 1000×</button>
+      <button class="btn-ghost" id="resetBtn">Reset</button>
+    </div>
+  </section>
+
+  <!-- RIGHT PANEL -->
+  <section class="panel">
+    <div class="hist-header">
+      <div class="hist-title">Distribution of Arrivals per Hour</div>
+    </div>
+
+    <div class="hist-options">
+      <label><input type="checkbox" id="showPoisson"> Show theoretical Poisson(R<sub>in</sub>) curve</label>
+    </div>
+
+    <div class="chart">
+      <svg id="chart" viewBox="0 0 720 400" preserveAspectRatio="none"></svg>
+    </div>
+
+    <div class="metrics">
+      <div><span class="metric-label">Observed mean:</span> <strong id="obsMean">—</strong></div>
+      <div><span class="metric-label">Observed variance:</span> <strong id="obsVar">—</strong></div>
+      <div class="theoretical"><span class="metric-label">Poisson mean (R<sub>in</sub>):</span> <strong id="lambdaDisplay">1.00</strong></div>
+      <div class="theoretical"><span class="metric-label">Poisson variance (R<sub>in</sub>):</span> <strong id="lambdaDisplay2">1.00</strong></div>
+    </div>
+
+    <div class="legend">
+      <span><span class="legend-dot" style="background:#4e2a84"></span>Observed frequency</span>
+      <span><span class="legend-dot" style="background:#f2a900"></span>Most recent hour</span>
+      <span><span class="legend-line"></span>Theoretical Poisson(R<sub>in</sub>)</span>
+    </div>
+  </section>
+</div>
+
+<script>
+/* ---------- State ---------- */
+let lambda = 1.0;
+let n = 2;
+let totalHours = 0;
+let counts = {};               // arrivals -> count
+let sumArrivals = 0;            // for mean
+let sumSqArrivals = 0;          // for variance
+let lastArrivals = null;
+let showPoisson = false;
+let busy = false;
+
+const $ = id => document.getElementById(id);
+
+/* ---------- Timeline / partition ---------- */
+// Cells partition the full width proportionally (via CSS grid).
+// Grid is n columns × lambda rows.
+function cellDims(n, lambda) {
+  let baseHeight, colGap;
+  if (n <= 2)        { baseHeight = 110; colGap = 8; }
+  else if (n <= 4)   { baseHeight = 95;  colGap = 7; }
+  else if (n <= 6)   { baseHeight = 80;  colGap = 6; }
+  else if (n <= 12)  { baseHeight = 64;  colGap = 4; }
+  else if (n <= 30)  { baseHeight = 48;  colGap = 3; }
+  else if (n <= 60)  { baseHeight = 36;  colGap = 2; }
+  else if (n <= 120) { baseHeight = 28;  colGap = 1; }
+  else if (n <= 200) { baseHeight = 22;  colGap = 1; }
+  else               { baseHeight = 18;  colGap = 1; }
+  // Shrink cells vertically as more rows (λ) are stacked, so the total
+  // timeline height stays reasonable even at λ = 10.
+  const height = Math.max(10, Math.round(baseHeight / Math.sqrt(Math.max(1, lambda))));
+  const rowGap = lambda === 1 ? 0 : Math.max(2, Math.min(4, Math.ceil(colGap / 2)));
+  return { height, colGap, rowGap };
+}
+
+function rebuildTimeline() {
+  const tl = $('timeline');
+  tl.innerHTML = '';
+  const { height, colGap, rowGap } = cellDims(n, lambda);
+  tl.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+  tl.style.gridAutoRows = height + 'px';
+  tl.style.gap = `${rowGap}px ${colGap}px`;
+  // Show "1/n" inside each cell only when the cell is large enough to read.
+  const showLabel = n <= 30 && height >= 24;
+  const labelText = showLabel ? `1/${n}` : '';
+  const fontSize = Math.max(10, Math.min(22, Math.floor(height * 0.4)));
+  const totalCells = n * lambda;
+  for (let i = 0; i < totalCells; i++) {
+    const c = document.createElement('div');
+    c.className = 'cell';
+    if (showLabel) {
+      c.textContent = labelText;
+      c.style.fontSize = fontSize + 'px';
+    }
+    tl.appendChild(c);
+  }
+  updateIntervalInfo();
+}
+
+function updateIntervalInfo() {
+  $('intervalLen').textContent = (60 / n).toFixed(2);
+  // Each cell has probability 1/n regardless of lambda.
+  $('pValue').textContent = (1 / n).toFixed(4);
+  $('pFormula').textContent = `1/${n}`;
+  $('avgDisplay').textContent = lambda.toString();
+  $('lambdaDisplay').textContent = lambda.toFixed(2);
+  $('lambdaDisplay2').textContent = lambda.toFixed(2);
+}
+
+function setStatus(text, cssClass) {
+  const el = $('simStatus');
+  el.innerHTML = text || '&nbsp;';
+  el.className = 'simulation-status ' + (cssClass || '');
+}
+
+/* ---------- Simulation ---------- */
+function simulateHour() {
+  // Each of the lambda * n cells is an independent coin with P(heads) = 1/n.
+  // Expected total = lambda * n * (1/n) = lambda.
+  const prob = 1 / n;
+  const totalCells = n * lambda;
+  const outcomes = new Uint8Array(totalCells);
+  let arrivals = 0;
+  for (let i = 0; i < totalCells; i++) {
+    if (Math.random() < prob) { outcomes[i] = 1; arrivals++; }
+  }
+  return { outcomes, arrivals };
+}
+
+function recordHour(arrivals) {
+  counts[arrivals] = (counts[arrivals] || 0) + 1;
+  sumArrivals += arrivals;
+  sumSqArrivals += arrivals * arrivals;
+  totalHours++;
+  lastArrivals = arrivals;
+}
+
+function simulateAnimated() {
+  if (busy) return;
+  busy = true;
+  $('simBtn').disabled = true;
+
+  const cells = $('timeline').children;
+  const totalCells = n * lambda;
+  for (let i = 0; i < totalCells; i++) cells[i].className = 'cell';
+  // reflow so transitions restart
+  void $('timeline').offsetWidth;
+
+  const { outcomes, arrivals } = simulateHour();
+  const pStr = (1 / n).toFixed(4);
+  setStatus(`Coins flipping, each coin has probability ${pStr}…`, 'flipping');
+  // Total sweep duration: shorter for big n so it doesn't drag on
+  const totalMs = n <= 30 ? 800 : (n <= 120 ? 700 : 600);
+
+  const start = performance.now();
+  let revealedCol = 0;
+
+  function revealColumn(col) {
+    // Reveal every row at this column simultaneously.
+    for (let row = 0; row < lambda; row++) {
+      const idx = row * n + col;
+      cells[idx].classList.add(outcomes[idx] ? 'arrival' : 'empty');
+    }
+  }
+
+  function frame(now) {
+    const t = Math.min(1, (now - start) / totalMs);
+    const target = Math.floor(t * n);
+    while (revealedCol < target) {
+      revealColumn(revealedCol);
+      revealedCol++;
+    }
+    if (t < 1) {
+      requestAnimationFrame(frame);
+    } else {
+      while (revealedCol < n) {
+        revealColumn(revealedCol);
+        revealedCol++;
+      }
+      recordHour(arrivals);
+      $('arrivalsThisHour').textContent = arrivals;
+      $('totalHours').textContent = totalHours;
+      drawChart();
+      setStatus(`Coins flipped! &nbsp; Number of arrivals: <strong>${arrivals}</strong>`, 'done');
+      busy = false;
+      $('simBtn').disabled = false;
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+function simulateBatch(k) {
+  if (busy) return;
+  // show the final hour on the timeline (no animation)
+  let last;
+  for (let i = 0; i < k; i++) {
+    last = simulateHour();
+    recordHour(last.arrivals);
+  }
+  const cells = $('timeline').children;
+  const totalCells = n * lambda;
+  for (let i = 0; i < totalCells; i++) {
+    cells[i].className = 'cell ' + (last.outcomes[i] ? 'arrival' : 'empty');
+  }
+  $('arrivalsThisHour').textContent = last.arrivals;
+  $('totalHours').textContent = totalHours;
+  drawChart();
+  setStatus(`Coins flipped ${k} times! &nbsp; Number of arrivals (last hour): <strong>${last.arrivals}</strong>`, 'done');
+}
+
+function resetAll() {
+  totalHours = 0;
+  counts = {};
+  sumArrivals = 0;
+  sumSqArrivals = 0;
+  lastArrivals = null;
+  $('arrivalsThisHour').textContent = '—';
+  $('totalHours').textContent = '0';
+  $('obsMean').textContent = '—';
+  $('obsVar').textContent = '—';
+  const cells = $('timeline').children;
+  for (let i = 0; i < cells.length; i++) cells[i].className = 'cell';
+  setStatus('', '');
+  drawChart();
+}
+
+/* ---------- Controls ---------- */
+$('simBtn').addEventListener('click', simulateAnimated);
+$('sim100').addEventListener('click', () => simulateBatch(100));
+$('sim1000').addEventListener('click', () => simulateBatch(1000));
+$('resetBtn').addEventListener('click', resetAll);
+
+const lambdaSlider = $('lambdaSlider');
+const nSlider = $('nSlider');
+
+function setLambda(v) {
+  lambda = Math.max(1, Math.min(20, Math.round(v)));
+  lambdaSlider.value = lambda;
+  $('lambdaValue').textContent = lambda.toString();
+  document.querySelectorAll('#lambdaPresets .preset').forEach(p =>
+    p.classList.toggle('active', parseInt(p.dataset.lambda) === lambda));
+  resetAll();
+  rebuildTimeline();
+}
+
+function setN(v) {
+  n = Math.max(2, Math.min(300, Math.round(v)));
+  nSlider.value = n;
+  $('nValue').textContent = n;
+  document.querySelectorAll('#nPresets .preset').forEach(p =>
+    p.classList.toggle('active', parseInt(p.dataset.n) === n));
+  resetAll();
+  rebuildTimeline();
+}
+
+// While dragging: only update the number label (cheap).
+// On release: do the actual reset + DOM rebuild.
+lambdaSlider.addEventListener('input', e => {
+  const v = Math.round(parseFloat(e.target.value));
+  $('lambdaValue').textContent = v.toString();
+});
+lambdaSlider.addEventListener('change', e => setLambda(parseInt(e.target.value)));
+
+nSlider.addEventListener('input', e => {
+  $('nValue').textContent = parseInt(e.target.value);
+});
+nSlider.addEventListener('change', e => setN(parseInt(e.target.value)));
+document.querySelectorAll('#lambdaPresets .preset').forEach(p =>
+  p.addEventListener('click', () => setLambda(parseFloat(p.dataset.lambda))));
+document.querySelectorAll('#nPresets .preset').forEach(p =>
+  p.addEventListener('click', () => setN(parseInt(p.dataset.n))));
+
+$('showPoisson').addEventListener('change', e => {
+  showPoisson = e.target.checked;
+  drawChart();
+});
+
+/* ---------- Poisson PMF ---------- */
+function poissonPMF(k, lam) {
+  // iterative to avoid overflow: p(k) = p(k-1) * lam / k
+  let p = Math.exp(-lam);
+  for (let i = 1; i <= k; i++) p = p * lam / i;
+  return p;
+}
+
+/* ---------- Chart ---------- */
+const chart = $('chart');
+
+function drawChart() {
+  const W = 720, H = 400;
+  const marginL = 46, marginR = 18, marginT = 20, marginB = 44;
+  const plotW = W - marginL - marginR;
+  const plotH = H - marginT - marginB;
+
+  // Determine x-axis range: 0 to max(observedMax, lambda + 3*sqrt(lambda), 8)
+  const observedMax = Object.keys(counts).length
+    ? Math.max(...Object.keys(counts).map(Number)) : 0;
+  const theoreticalMax = Math.ceil(lambda + 3 * Math.sqrt(Math.max(lambda, 1)));
+  const xMax = Math.max(observedMax + 1, theoreticalMax, 8);
+  const xValues = [];
+  for (let k = 0; k <= xMax; k++) xValues.push(k);
+
+  const data = xValues.map(k => counts[k] || 0);
+  const probs = data.map(c => totalHours > 0 ? c / totalHours : 0);
+
+  // Poisson PMF values (for overlay and y-axis scaling)
+  const pmf = xValues.map(k => poissonPMF(k, lambda));
+
+  // y-axis max
+  const maxObs = Math.max(...probs, 0.02);
+  const maxPmf = Math.max(...pmf);
+  let yMaxRaw = Math.max(maxObs, showPoisson ? maxPmf : 0) * 1.2;
+  const tidy = [0.02, 0.05, 0.1, 0.15, 0.2, 0.25, 0.35, 0.5, 0.75, 1.0];
+  const yMax = tidy.find(t => t >= yMaxRaw) || 1.0;
+
+  const nBars = xValues.length;
+  const barGap = nBars <= 15 ? 5 : 3;
+  const barW = Math.max(2, (plotW - barGap * (nBars - 1)) / nBars);
+
+  let svg = '';
+
+  // y gridlines
+  const nTicks = 5;
+  for (let i = 0; i <= nTicks; i++) {
+    const v = (i / nTicks) * yMax;
+    const y = marginT + plotH - (v / yMax) * plotH;
+    svg += `<line class="axis-line" x1="${marginL}" y1="${y}" x2="${W - marginR}" y2="${y}" stroke-dasharray="${i===0?'0':'3,3'}"/>`;
+    svg += `<text class="tick-label" x="${marginL - 6}" y="${y + 4}" text-anchor="end">${v.toFixed(yMax >= 0.2 ? 2 : 3)}</text>`;
+  }
+
+  // bars
+  xValues.forEach((k, i) => {
+    const p = probs[i];
+    const x = marginL + i * (barW + barGap);
+    const h = (p / yMax) * plotH;
+    const y = marginT + plotH - h;
+    const isHL = (lastArrivals !== null && k === lastArrivals);
+    svg += `<rect class="bar ${isHL ? 'highlight' : ''}" x="${x}" y="${y}" width="${barW}" height="${h}" rx="${Math.min(2, barW/2)}"/>`;
+  });
+
+  // x tick labels
+  const maxLabels = 14;
+  const labelStep = Math.max(1, Math.ceil(nBars / maxLabels));
+  xValues.forEach((k, i) => {
+    if (i % labelStep === 0 || i === nBars - 1) {
+      const x = marginL + i * (barW + barGap) + barW / 2;
+      svg += `<text class="tick-label" x="${x}" y="${marginT + plotH + 16}" text-anchor="middle">${k}</text>`;
+    }
+  });
+
+  // Poisson overlay
+  if (showPoisson) {
+    // Connect dots at (centerX_i, y_i)
+    const pts = xValues.map((k, i) => {
+      const x = marginL + i * (barW + barGap) + barW / 2;
+      const y = marginT + plotH - (pmf[i] / yMax) * plotH;
+      return [x, y];
+    });
+    const pathD = pts.map((pt, i) => (i === 0 ? 'M' : 'L') + pt[0].toFixed(1) + ',' + pt[1].toFixed(1)).join(' ');
+    svg += `<path class="poisson-line" d="${pathD}"/>`;
+    pts.forEach(([x, y]) => {
+      svg += `<circle class="poisson-dot" cx="${x}" cy="${y}" r="3.5"/>`;
+    });
+  }
+
+  // axis labels
+  svg += `<text class="axis-label" x="${marginL + plotW/2}" y="${H - 8}" text-anchor="middle">Number of arrivals in one hour</text>`;
+  svg += `<text class="axis-label" x="${14}" y="${marginT + plotH/2}" text-anchor="middle" transform="rotate(-90, 14, ${marginT + plotH/2})">Relative frequency</text>`;
+
+  chart.innerHTML = svg;
+
+  // metrics
+  if (totalHours > 0) {
+    const mean = sumArrivals / totalHours;
+    const variance = (sumSqArrivals / totalHours) - mean * mean;
+    $('obsMean').textContent = mean.toFixed(3);
+    $('obsVar').textContent = variance.toFixed(3);
+  }
+}
+
+/* ---------- Init ---------- */
+rebuildTimeline();
+drawChart();
+</script>
+</body>
+</html>
