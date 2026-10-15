@@ -45,15 +45,19 @@ body::before {
 
 /* Sidebar Styles */
 .sidebar {
-  background-color: rgba(255, 255, 255, 0.0); /* Light background for sidebar */
+  /* Own copy of the page background (mosaic + white wash) so the panel is fixed as one unit */
+  background-image: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)), url('../images/Zellij.png');
+  background-position: top left; /* Same tiling origin as the body, so it lines up at the top of the page */
   padding: 20px;
   position: fixed; /* Sidebar stays fixed on scroll */
   top: 0; /* Align with the top of the container */
   left: 0;
   width: 10% !important; /* Adjust the width as needed */
-  height: auto; /* Allow the height to fit the content */
+  height: 100vh; /* Full-height panel */
   max-height: 100vh; /* Ensure the sidebar doesn't exceed the viewport height */
   overflow-y: auto; /* Add scroll if content exceeds the viewport height */
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08); /* Subtle edge so the panel reads as a panel */
+  z-index: 10;
 }
 
 .sidebar ul {
