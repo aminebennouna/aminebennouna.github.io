@@ -42,7 +42,7 @@
   <!-- Sidebar Section -->
   <div class="three columns sidebar">
     <ul>
-      <li><a href="#home">Home</a></li>
+      <li><a href="#home">About</a></li>
       <li><a href="#news">News</a></li>
       <li><a href="#papers">Papers</a></li>
       <li><a href="#teaching">Teaching</a></li>
@@ -601,6 +601,29 @@
         });
         toggleButton.setAttribute('data-expanded', isExpanded ? 'false' : 'true');
         toggleButton.textContent = isExpanded ? 'Show older news' : 'Hide older news';
+      });
+    })();
+  </script>
+
+  <script>
+    // Highlight the sidebar link for the section currently in view
+    (function () {
+      var links = document.querySelectorAll('.sidebar a[href^="#"]');
+      if (!links.length || !('IntersectionObserver' in window)) { return; }
+      var byId = {};
+      links.forEach(function (a) { byId[a.getAttribute('href').slice(1)] = a; });
+      var visible = {};
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) { visible[e.target.id] = e.isIntersecting; });
+        var current = null;
+        Object.keys(byId).forEach(function (id) { if (visible[id] && !current) { current = id; } });
+        if (!current) { return; }
+        links.forEach(function (a) { a.classList.remove('active'); });
+        byId[current].classList.add('active');
+      }, { rootMargin: '-20% 0px -60% 0px' });
+      Object.keys(byId).forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) { observer.observe(el); }
       });
     })();
   </script>
